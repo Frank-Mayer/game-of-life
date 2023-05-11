@@ -1,0 +1,137 @@
+package de.hhn.gameoflife;
+
+import java.awt.Dimension;
+import java.awt.GraphicsEnvironment;
+import javax.swing.JColorChooser;
+import javax.swing.JDesktopPane;
+import javax.swing.JInternalFrame;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.event.InternalFrameAdapter;
+import javax.swing.event.InternalFrameEvent;
+
+public class MyMenuBar extends JMenuBar {
+
+  // ## create a menu bar for an internal frame
+  private static JMenuBar makeInternalFrameMenuBar(final JInternalFrame inFrame) {
+    final var menuBar = new JMenuBar();
+
+    // ### add a menu to control the internal frame
+    final var ctrlMenu = new JMenu("Control");
+    menuBar.add(ctrlMenu);
+
+    // #### add a menu item to close the internal frame
+    final var closeMenuItem = new JMenuItem("Close");
+    closeMenuItem.addActionListener(e -> inFrame.dispose());
+    ctrlMenu.add(closeMenuItem);
+
+    // #### add a menu item to pause / resume the game
+    final var pauseMenuItem = new JMenuItem("Start");
+    pauseMenuItem.addActionListener(
+        e -> {
+          final var gol = (GameOfLife) inFrame.getContentPane();
+          pauseMenuItem.setText(gol.togglePaused() ? "Resume" : "Pause");
+        });
+    ctrlMenu.add(pauseMenuItem);
+
+    // ### add a menu to control the world
+    final var worldMenu = new JMenu("World");
+    menuBar.add(worldMenu);
+    final var clearMenuItem = new JMenuItem("Clear");
+    clearMenuItem.addActionListener(
+        e -> {
+          final var gol = (GameOfLife) inFrame.getContentPane();
+          gol.clear();
+        });
+    worldMenu.add(clearMenuItem);
+    final var aliveColorMenuItem = new JMenuItem("Alive Color");
+    aliveColorMenuItem.addActionListener(
+        e -> {
+          final var gol = (GameOfLife) inFrame.getContentPane();
+          final var color =
+              JColorChooser.showDialog(inFrame, "Choose Alive Color", gol.getAliveColor());
+          if (color != null) {
+            gol.setAliveColor(color);
+          }
+        });
+    worldMenu.add(aliveColorMenuItem);
+    final var deadColorMenuItem = new JMenuItem("Dead Color");
+    deadColorMenuItem.addActionListener(
+        e -> {
+          final var gol = (GameOfLife) inFrame.getContentPane();
+          final var color =
+              JColorChooser.showDialog(inFrame, "Choose Dead Color", gol.getDeadColor());
+          if (color != null) {
+            gol.setDeadColor(color);
+          }
+        });
+    worldMenu.add(deadColorMenuItem);
+
+    return menuBar;
+  }
+
+  private final JDesktopPane deskPane;
+
+  private final InternalFrameAdapter internalFrameClosed =
+      new InternalFrameAdapter() {
+        @Override
+        public void internalFrameClosed(final InternalFrameEvent e) {
+          final var inFrame = e.getInternalFrame();
+          final var gol = (GameOfLife) inFrame.getContentPane();
+          gol.dispose();
+          MyMenuBar.this.deskPane.remove(inFrame);
+        }
+      };
+
+  public MyMenuBar(final JDesktopPane deskPane) {
+    final var newInstanceMenu = new JMenu("New Instance");
+    this.add(newInstanceMenu);
+    this.deskPane = deskPane;
+
+    // ## calculate preferred sub-frame size
+    final var maxWindowBoulds =
+        GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds().getSize();
+    final var maxWindowSide =
+        (int) (Math.min(maxWindowBoulds.width, maxWindowBoulds.height) * 0.75);
+    final var preferredFrameSize = new Dimension(maxWindowSide, maxWindowSide);
+
+    // ## add menu items for different resolutions
+    for (int i = 5; i < 13; ++i) {
+      final var res = 1 << i;
+      newInstanceMenu.add(this.makeInternalFrameCreatorMenuItem(deskPane, preferredFrameSize, res));
+    }
+
+    final var testMenuItem = new JMenuItem("Test");
+    testMenuItem.addActionListener(
+        e -> {
+          final var inFrame = new TestWindow();
+          inFrame.setPreferredSize(preferredFrameSize);
+          deskPane.add(inFrame);
+        });
+    newInstanceMenu.add(testMenuItem);
+  }
+
+  // ## create a menu item to create a new internal frame
+  private JMenuItem makeInternalFrameCreatorMenuItem(
+      final JDesktopPane deskPane, final Dimension preferredFrameSize, final int res) {
+    final var menuItem = new JMenuItem(String.format("%dx%d", res, res));
+    menuItem.addActionListener(
+        e -> {
+          // ## create a new internal frame
+          final var inFrame =
+              new JInternalFrame(
+                  String.format("Game of Life %dx%d", res, res), true, true, true, true);
+          inFrame.setPreferredSize(preferredFrameSize);
+
+          inFrame.setJMenuBar(MyMenuBar.makeInternalFrameMenuBar(inFrame));
+          final var gol = new GameOfLife(res, res);
+          inFrame.setContentPane(gol);
+          deskPane.add(inFrame);
+          inFrame.pack();
+          inFrame.show();
+          inFrame.addInternalFrameListener(this.internalFrameClosed);
+        });
+    return menuItem;
+  }
+}
