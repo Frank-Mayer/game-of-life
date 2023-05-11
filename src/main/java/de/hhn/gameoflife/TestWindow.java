@@ -8,7 +8,7 @@ import javax.swing.SwingUtilities;
 
 public class TestWindow extends JInternalFrame {
 
-  private final GameOfLife gameOfLife;
+  private final GamePanel gamePanel;
   private final Stack<BitSet> testsIn = new Stack<>();
   private final Stack<Boolean> testsOut = new Stack<>();
   private final int testOutIndex = 5;
@@ -16,7 +16,7 @@ public class TestWindow extends JInternalFrame {
   public TestWindow() {
     super("Test", true, true, true, true);
 
-    this.gameOfLife = new GameOfLife(4, 4);
+    this.gamePanel = new GamePanel(4, 4);
     {
       // input
       final var in = new BitSet(16);
@@ -76,7 +76,7 @@ public class TestWindow extends JInternalFrame {
     // expected output
     this.testsOut.push(false);
 
-    this.setContentPane(this.gameOfLife);
+    this.setContentPane(this.gamePanel);
     this.pack();
     this.show();
 
@@ -90,9 +90,9 @@ public class TestWindow extends JInternalFrame {
     while (!this.testsIn.isEmpty() && !this.testsOut.isEmpty()) {
       final var in = this.testsIn.pop();
       final var expectedOut = this.testsOut.pop();
-      this.gameOfLife.overwriteWorldData(in);
-      this.gameOfLife.calcTick();
-      final var realOut = this.gameOfLife.getWorldDataB().get(this.testOutIndex);
+      this.gamePanel.overwriteWorldData(in);
+      this.gamePanel.calcTick();
+      final var realOut = this.gamePanel.getWorldDataB().get(this.testOutIndex);
       errTxt.append(
           String.format(
               "<p><b>Test %d: %s</b></p>", i, realOut == expectedOut ? "PASSED" : "FAILED"));
@@ -101,13 +101,15 @@ public class TestWindow extends JInternalFrame {
       errTxt.append(
           String.format(
               "<p>Result: %s</p>",
-              realOut != expectedOut ? this.displayBitSet(this.gameOfLife.getWorldDataB()) : realOut));
+              realOut != expectedOut
+                  ? this.displayBitSet(this.gamePanel.getWorldDataB())
+                  : realOut));
       ++i;
     }
     errTxt.append("</html>");
     final var errLabel = new JLabel();
     this.setContentPane(errLabel);
-    this.gameOfLife.dispose();
+    this.gamePanel.dispose();
     errLabel.setText(errTxt.toString());
     this.pack();
   }

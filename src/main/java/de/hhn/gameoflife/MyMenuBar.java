@@ -30,7 +30,7 @@ public class MyMenuBar extends JMenuBar {
     final var pauseMenuItem = new JMenuItem("Start");
     pauseMenuItem.addActionListener(
         e -> {
-          final var gol = (GameOfLife) inFrame.getContentPane();
+          final var gol = (GamePanel) inFrame.getContentPane();
           pauseMenuItem.setText(gol.togglePaused() ? "Resume" : "Pause");
         });
     ctrlMenu.add(pauseMenuItem);
@@ -41,14 +41,14 @@ public class MyMenuBar extends JMenuBar {
     final var clearMenuItem = new JMenuItem("Clear");
     clearMenuItem.addActionListener(
         e -> {
-          final var gol = (GameOfLife) inFrame.getContentPane();
+          final var gol = (GamePanel) inFrame.getContentPane();
           gol.clear();
         });
     worldMenu.add(clearMenuItem);
     final var aliveColorMenuItem = new JMenuItem("Alive Color");
     aliveColorMenuItem.addActionListener(
         e -> {
-          final var gol = (GameOfLife) inFrame.getContentPane();
+          final var gol = (GamePanel) inFrame.getContentPane();
           final var color =
               JColorChooser.showDialog(inFrame, "Choose Alive Color", gol.getAliveColor());
           if (color != null) {
@@ -59,7 +59,7 @@ public class MyMenuBar extends JMenuBar {
     final var deadColorMenuItem = new JMenuItem("Dead Color");
     deadColorMenuItem.addActionListener(
         e -> {
-          final var gol = (GameOfLife) inFrame.getContentPane();
+          final var gol = (GamePanel) inFrame.getContentPane();
           final var color =
               JColorChooser.showDialog(inFrame, "Choose Dead Color", gol.getDeadColor());
           if (color != null) {
@@ -78,7 +78,7 @@ public class MyMenuBar extends JMenuBar {
         @Override
         public void internalFrameClosed(final InternalFrameEvent e) {
           final var inFrame = e.getInternalFrame();
-          final var gol = (GameOfLife) inFrame.getContentPane();
+          final var gol = (GamePanel) inFrame.getContentPane();
           gol.dispose();
           MyMenuBar.this.deskPane.remove(inFrame);
         }
@@ -125,7 +125,7 @@ public class MyMenuBar extends JMenuBar {
           inFrame.setPreferredSize(preferredFrameSize);
 
           inFrame.setJMenuBar(MyMenuBar.makeInternalFrameMenuBar(inFrame));
-          final var gol = new GameOfLife(res, res);
+          final var gol = new GamePanel(res, res);
           inFrame.setContentPane(gol);
           deskPane.add(inFrame);
           inFrame.pack();
