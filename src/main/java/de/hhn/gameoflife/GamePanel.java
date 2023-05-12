@@ -6,6 +6,9 @@ import java.awt.Color;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Random;
@@ -13,6 +16,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import javax.imageio.ImageIO;
 import javax.swing.BoxLayout;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -21,6 +25,7 @@ import javax.swing.JSlider;
 public class GamePanel extends JPanel {
 
   private final int worldWidth;
+  private final int worldHeight;
   private final int worldSize;
   private final int worldSizeMinusWorldWidth;
   private final int worldSizePlusWorldWidth;
@@ -65,6 +70,7 @@ public class GamePanel extends JPanel {
 
     // # initialize the "world"
     this.worldWidth = width;
+    this.worldHeight = height;
     this.worldSize = width * height;
     this.worldSizeMinusWorldWidth = this.worldSize - this.worldWidth;
     this.worldSizePlusWorldWidth = this.worldSize + this.worldWidth;
@@ -86,8 +92,7 @@ public class GamePanel extends JPanel {
     this.worldUI.addMouseListener(
         new MouseListener() {
           @Override
-          public void mouseClicked(final MouseEvent e) {
-          }
+          public void mouseClicked(final MouseEvent e) {}
 
           @Override
           public void mousePressed(final MouseEvent e) {
@@ -96,16 +101,13 @@ public class GamePanel extends JPanel {
           }
 
           @Override
-          public void mouseReleased(final MouseEvent e) {
-          }
+          public void mouseReleased(final MouseEvent e) {}
 
           @Override
-          public void mouseEntered(final MouseEvent e) {
-          }
+          public void mouseEntered(final MouseEvent e) {}
 
           @Override
-          public void mouseExited(final MouseEvent e) {
-          }
+          public void mouseExited(final MouseEvent e) {}
         });
     this.worldUI.addMouseMotionListener(
         new MouseMotionListener() {
@@ -116,8 +118,7 @@ public class GamePanel extends JPanel {
           }
 
           @Override
-          public void mouseMoved(final MouseEvent e) {
-          }
+          public void mouseMoved(final MouseEvent e) {}
         });
 
     this.sheduler = Executors.newSingleThreadScheduledExecutor();
@@ -129,9 +130,10 @@ public class GamePanel extends JPanel {
       for (int i = 0; i < partsCount; ++i) {
         final var start = partSize * i;
         final var end = partSize * (i + 1);
-        this.calcTickParts[i] = () -> {
-          calcTick(start, end);
-        };
+        this.calcTickParts[i] =
+            () -> {
+              calcTick(start, end);
+            };
       }
       // # start the game loop
       this.sheduler.scheduleWithFixedDelay(this::tickAsync, 500, 1, TimeUnit.MILLISECONDS);
@@ -200,12 +202,14 @@ public class GamePanel extends JPanel {
       // ### check all neighbors
       livingNeighbors = 0;
       // #### 1: north
-      neighborIndex = i + GamePanel.this.worldSizeMinusWorldWidth & GamePanel.this.worldSizeMinusOne;
+      neighborIndex =
+          i + GamePanel.this.worldSizeMinusWorldWidth & GamePanel.this.worldSizeMinusOne;
       if (GamePanel.this.worldDataA.get(neighborIndex)) {
         ++livingNeighbors;
       }
       // #### 2: north-east
-      neighborIndex = iPlusOne + GamePanel.this.worldSizeMinusWorldWidth & GamePanel.this.worldSizeMinusOne;
+      neighborIndex =
+          iPlusOne + GamePanel.this.worldSizeMinusWorldWidth & GamePanel.this.worldSizeMinusOne;
       if (GamePanel.this.worldDataA.get(neighborIndex)) {
         ++livingNeighbors;
       }
@@ -225,8 +229,9 @@ public class GamePanel extends JPanel {
         ++livingNeighbors;
       }
       // #### 6: south-west
-      neighborIndex = iMinusOne + GamePanel.this.worldWidth + GamePanel.this.worldSize
-          & GamePanel.this.worldSizeMinusOne;
+      neighborIndex =
+          iMinusOne + GamePanel.this.worldWidth + GamePanel.this.worldSize
+              & GamePanel.this.worldSizeMinusOne;
       if (GamePanel.this.worldDataA.get(neighborIndex)) {
         ++livingNeighbors;
       }
@@ -236,7 +241,8 @@ public class GamePanel extends JPanel {
         ++livingNeighbors;
       }
       // #### 8: north-west
-      neighborIndex = iMinusOne - GamePanel.this.worldSizePlusWorldWidth & GamePanel.this.worldSizeMinusOne;
+      neighborIndex =
+          iMinusOne - GamePanel.this.worldSizePlusWorldWidth & GamePanel.this.worldSizeMinusOne;
       if (GamePanel.this.worldDataA.get(neighborIndex)) {
         ++livingNeighbors;
       }
@@ -316,9 +322,10 @@ public class GamePanel extends JPanel {
     final var start = System.nanoTime();
 
     // ## calculate next generation
-    final CompletableFuture<Void>[] allFutures = Arrays.stream(this.calcTickParts)
-        .map(x -> CompletableFuture.runAsync(x))
-        .toArray(size -> new CompletableFuture[size]);
+    final CompletableFuture<Void>[] allFutures =
+        Arrays.stream(this.calcTickParts)
+            .map(x -> CompletableFuture.runAsync(x))
+            .toArray(size -> new CompletableFuture[size]);
     final CompletableFuture<Void> allDoneFuture = CompletableFuture.allOf(allFutures);
     try {
       allDoneFuture.get();
@@ -348,5 +355,34 @@ public class GamePanel extends JPanel {
 
     // ## pass the new generation to the UI
     this.worldUI.draw(GamePanel.this.worldDataA);
+  }
+
+  // # load world data from an image file
+  public void load(final File imageFile) {
+    BufferedImage img;
+    try {
+      img = ImageIO.read(imageFile);
+    } catch (final IOException e) {
+      System.err.println("Error loading image: " + e.getMessage());
+      return;
+    }
+    BufferedImage resized =
+        new BufferedImage(this.worldWidth, this.worldHeight, BufferedImage.TYPE_INT_RGB);
+    final var g = resized.createGraphics();
+    g.drawImage(img, 0, 0, this.worldWidth, this.worldHeight, null);
+    // ## write pixels into world data
+    final var wasPaused = this.paused;
+    this.paused = true;
+    for(int y = 0; y < this.worldHeight; ++y) {
+      for(int x = 0; x < this.worldWidth; ++x) {
+        final var pixel = resized.getRGB(x, y);
+        final var gray = ((pixel & 0xFF) + ((pixel >> 8) & 0xFF) + ((pixel >> 16) & 0xFF)) / 765f;
+        final var index = y * this.worldWidth + x;
+        this.worldDataA.set(index, gray > 0.5);
+      }
+    }
+    this.worldUI.draw(this.worldDataA);
+    this.paused = wasPaused;
+    g.dispose();
   }
 }

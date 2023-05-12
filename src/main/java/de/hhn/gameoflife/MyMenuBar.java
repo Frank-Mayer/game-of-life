@@ -4,6 +4,7 @@ import java.awt.Dimension;
 import java.awt.GraphicsEnvironment;
 import javax.swing.JColorChooser;
 import javax.swing.JDesktopPane;
+import javax.swing.JFileChooser;
 import javax.swing.JInternalFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
@@ -34,6 +35,19 @@ public class MyMenuBar extends JMenuBar {
           pauseMenuItem.setText(gol.togglePaused() ? "Resume" : "Pause");
         });
     ctrlMenu.add(pauseMenuItem);
+
+    // #### add menu item to load game state from image file
+    final var loadMenuItem = new JMenuItem("Load");
+    loadMenuItem.addActionListener(
+        e -> {
+          final var gol = (GamePanel) inFrame.getContentPane();
+          final var fileChooser = new JFileChooser();
+          final var result = fileChooser.showOpenDialog(inFrame);
+          if (result == JFileChooser.APPROVE_OPTION) {
+            gol.load(fileChooser.getSelectedFile());
+          }
+        });
+    ctrlMenu.add(loadMenuItem);
 
     // ### add a menu to control the world
     final var worldMenu = new JMenu("World");
