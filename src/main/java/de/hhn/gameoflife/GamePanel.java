@@ -2,6 +2,7 @@ package de.hhn.gameoflife;
 
 import static de.hhn.gameoflife.State.useState;
 
+import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
@@ -18,6 +19,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import javax.imageio.ImageIO;
 import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSlider;
@@ -277,6 +280,42 @@ public class GamePanel extends JPanel {
     return this.worldDataB;
   }
 
+  // # load world data from an image file
+  public void load(final File imageFile) {
+    BufferedImage img;
+    try {
+      img = ImageIO.read(imageFile);
+    } catch (final IOException e) {
+      final var dialog = new JDialog();
+      dialog.setLayout(new BorderLayout());
+      dialog.add(new JLabel("Error loading image file: " + e.getMessage()), BorderLayout.CENTER);
+      dialog.add(new JButton("OK") {
+        {
+          addActionListener(e -> dialog.dispose());
+        }
+      }, BorderLayout.SOUTH);
+      return;
+    }
+    final BufferedImage resized =
+        new BufferedImage(this.worldWidth, this.worldHeight, BufferedImage.TYPE_INT_RGB);
+    final var g = resized.createGraphics();
+    g.drawImage(img, 0, 0, this.worldWidth, this.worldHeight, null);
+    // ## write pixels into world data
+    final var wasPaused = this.paused;
+    this.paused = true;
+    for(int y = 0; y < this.worldHeight; ++y) {
+      for(int x = 0; x < this.worldWidth; ++x) {
+        final var pixel = resized.getRGB(x, y);
+        final var gray = ((pixel & 0xFF) + ((pixel >> 8) & 0xFF) + ((pixel >> 16) & 0xFF)) / 765f;
+        final var index = y * this.worldWidth + x;
+        this.worldDataA.set(index, gray > 0.5);
+      }
+    }
+    this.worldUI.draw(this.worldDataA);
+    this.paused = wasPaused;
+    g.dispose();
+  }
+
   private void tickSync() {
     // ## check if the game is running
     if (this.paused) {
@@ -355,34 +394,5 @@ public class GamePanel extends JPanel {
 
     // ## pass the new generation to the UI
     this.worldUI.draw(GamePanel.this.worldDataA);
-  }
-
-  // # load world data from an image file
-  public void load(final File imageFile) {
-    BufferedImage img;
-    try {
-      img = ImageIO.read(imageFile);
-    } catch (final IOException e) {
-      System.err.println("Error loading image: " + e.getMessage());
-      return;
-    }
-    BufferedImage resized =
-        new BufferedImage(this.worldWidth, this.worldHeight, BufferedImage.TYPE_INT_RGB);
-    final var g = resized.createGraphics();
-    g.drawImage(img, 0, 0, this.worldWidth, this.worldHeight, null);
-    // ## write pixels into world data
-    final var wasPaused = this.paused;
-    this.paused = true;
-    for(int y = 0; y < this.worldHeight; ++y) {
-      for(int x = 0; x < this.worldWidth; ++x) {
-        final var pixel = resized.getRGB(x, y);
-        final var gray = ((pixel & 0xFF) + ((pixel >> 8) & 0xFF) + ((pixel >> 16) & 0xFF)) / 765f;
-        final var index = y * this.worldWidth + x;
-        this.worldDataA.set(index, gray > 0.5);
-      }
-    }
-    this.worldUI.draw(this.worldDataA);
-    this.paused = wasPaused;
-    g.dispose();
   }
 }
