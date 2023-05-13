@@ -37,7 +37,7 @@ public class MyMenuBar extends JMenuBar {
     ctrlMenu.add(pauseMenuItem);
 
     // #### add menu item to load game state from image file
-    final var loadMenuItem = new JMenuItem("Load");
+    final var loadMenuItem = new JMenuItem("Load Image");
     loadMenuItem.addActionListener(
         e -> {
           final var gol = (GamePanel) inFrame.getContentPane();

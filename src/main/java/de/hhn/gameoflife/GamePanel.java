@@ -2,7 +2,6 @@ package de.hhn.gameoflife;
 
 import static de.hhn.gameoflife.State.useState;
 
-import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
@@ -19,8 +18,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import javax.imageio.ImageIO;
 import javax.swing.BoxLayout;
-import javax.swing.JButton;
-import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSlider;
@@ -298,20 +295,14 @@ public class GamePanel extends JPanel {
       BufferedImage img;
       try {
         img = ImageIO.read(imageFile);
+        if (img == null) {
+          Alert.show("Error", "The selected file is not a valid image file.", this.worldUI);
+          this.paused = wasPaused;
+          return;
+        }
       } catch (final IOException e) {
-        final var dialog = new JDialog();
-        dialog.setLayout(new BorderLayout());
-        dialog.add(new JLabel("Error loading image file: " + e.getMessage()), BorderLayout.CENTER);
-        dialog.add(
-            new JButton("OK") {
-              {
-                addActionListener(e -> dialog.dispose());
-              }
-            },
-            BorderLayout.SOUTH);
-        dialog.pack();
-        dialog.setLocationRelativeTo(this.worldUI);
-        dialog.setVisible(true);
+        Alert.show("Error", e.getMessage(), this.worldUI);
+        this.paused = wasPaused;
         return;
       }
       BufferedImage resized =
