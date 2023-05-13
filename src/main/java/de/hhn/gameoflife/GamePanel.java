@@ -19,6 +19,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import javax.imageio.ImageIO;
 import javax.swing.BoxLayout;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
@@ -49,6 +50,7 @@ public class GamePanel extends JPanel {
   private long minTickTime = 0;
 
   private Runnable[] calcTickParts;
+  private final Object lock = new Object();
 
   public GamePanel(final int width, final int height) {
 
@@ -282,38 +284,47 @@ public class GamePanel extends JPanel {
 
   // # load world data from an image file
   public void load(final File imageFile) {
-    BufferedImage img;
-    try {
-      img = ImageIO.read(imageFile);
-    } catch (final IOException e) {
-      final var dialog = new JDialog();
-      dialog.setLayout(new BorderLayout());
-      dialog.add(new JLabel("Error loading image file: " + e.getMessage()), BorderLayout.CENTER);
-      dialog.add(new JButton("OK") {
-        {
-          addActionListener(e -> dialog.dispose());
-        }
-      }, BorderLayout.SOUTH);
-      return;
-    }
-    final BufferedImage resized =
-        new BufferedImage(this.worldWidth, this.worldHeight, BufferedImage.TYPE_INT_RGB);
-    final var g = resized.createGraphics();
-    g.drawImage(img, 0, 0, this.worldWidth, this.worldHeight, null);
-    // ## write pixels into world data
     final var wasPaused = this.paused;
     this.paused = true;
-    for(int y = 0; y < this.worldHeight; ++y) {
-      for(int x = 0; x < this.worldWidth; ++x) {
-        final var pixel = resized.getRGB(x, y);
-        final var gray = ((pixel & 0xFF) + ((pixel >> 8) & 0xFF) + ((pixel >> 16) & 0xFF)) / 765f;
-        final var index = y * this.worldWidth + x;
-        this.worldDataA.set(index, gray > 0.5);
+    synchronized (this.lock) {
+      BufferedImage img;
+      try {
+        img = ImageIO.read(imageFile);
+      } catch (final IOException e) {
+        final var dialog = new JDialog();
+        dialog.setLayout(new BorderLayout());
+        dialog.add(new JLabel("Error loading image file: " + e.getMessage()), BorderLayout.CENTER);
+        dialog.add(
+            new JButton("OK") {
+              {
+                addActionListener(e -> dialog.dispose());
+              }
+            },
+            BorderLayout.SOUTH);
+        dialog.pack();
+        dialog.setLocationRelativeTo(this.worldUI);
+        dialog.setVisible(true);
+        return;
       }
+      BufferedImage resized =
+          new BufferedImage(this.worldWidth, this.worldHeight, BufferedImage.TYPE_INT_RGB);
+      final var g = resized.createGraphics();
+      g.drawImage(img, 0, 0, this.worldWidth, this.worldHeight, null);
+      // ## apply filters
+      resized = Dithering.floydSteinberg(Dithering.grayScale(resized));
+      // ## write pixels into world data
+      for (int y = 0; y < this.worldHeight; ++y) {
+        for (int x = 0; x < this.worldWidth; ++x) {
+          final var pixel = resized.getRGB(x, y);
+          final var redChannel = (pixel >> 16) & 0xFF;
+          final var index = y * this.worldWidth + x;
+          this.worldDataA.set(index, redChannel > 127);
+        }
+      }
+      this.worldUI.draw(this.worldDataA);
+      g.dispose();
     }
-    this.worldUI.draw(this.worldDataA);
     this.paused = wasPaused;
-    g.dispose();
   }
 
   private void tickSync() {
@@ -322,33 +333,35 @@ public class GamePanel extends JPanel {
       return;
     }
 
-    // ## save start time
-    final var start = System.nanoTime();
+    synchronized (this.lock) {
+      // ## save start time
+      final var start = System.nanoTime();
 
-    // ## calculate next generation
-    calcTick(0, this.worldSize);
+      // ## calculate next generation
+      calcTick(0, this.worldSize);
 
-    // ## calculate time spend for this tick
-    final var tickTime = System.nanoTime() - start;
-    this.tpsLabel.add(tickTime);
+      // ## calculate time spend for this tick
+      final var tickTime = System.nanoTime() - start;
+      this.tpsLabel.add(tickTime);
 
-    // ## sleep
-    final var sleepTime = this.minTickTime - tickTime / 1000000L;
-    if (sleepTime > 0L) {
-      try {
-        Thread.sleep(sleepTime);
-      } catch (final Exception e) {
-        // ### ignore
+      // ## sleep
+      final var sleepTime = this.minTickTime - tickTime / 1000000L;
+      if (sleepTime > 0L) {
+        try {
+          Thread.sleep(sleepTime);
+        } catch (final Exception e) {
+          // ### ignore
+        }
       }
+
+      // ## swap the world data a and b; a stays primary
+      final var tmp = GamePanel.this.worldDataA;
+      GamePanel.this.worldDataA = GamePanel.this.worldDataB;
+      GamePanel.this.worldDataB = tmp;
+
+      // ## pass the new generation to the UI
+      this.worldUI.draw(GamePanel.this.worldDataA);
     }
-
-    // ## swap the world data a and b; a stays primary
-    final var tmp = GamePanel.this.worldDataA;
-    GamePanel.this.worldDataA = GamePanel.this.worldDataB;
-    GamePanel.this.worldDataB = tmp;
-
-    // ## pass the new generation to the UI
-    this.worldUI.draw(GamePanel.this.worldDataA);
   }
 
   private void tickAsync() {
@@ -357,42 +370,44 @@ public class GamePanel extends JPanel {
       return;
     }
 
-    // ## save start time
-    final var start = System.nanoTime();
+    synchronized (this.lock) {
+      // ## save start time
+      final var start = System.nanoTime();
 
-    // ## calculate next generation
-    final CompletableFuture<Void>[] allFutures =
-        Arrays.stream(this.calcTickParts)
-            .map(x -> CompletableFuture.runAsync(x))
-            .toArray(size -> new CompletableFuture[size]);
-    final CompletableFuture<Void> allDoneFuture = CompletableFuture.allOf(allFutures);
-    try {
-      allDoneFuture.get();
-    } catch (final Exception e) {
-      e.printStackTrace();
-      return;
-    }
-
-    // ## calculate time spend for this tick
-    final var tickTime = System.nanoTime() - start;
-    this.tpsLabel.add(tickTime);
-
-    // ## sleep
-    final var sleepTime = this.minTickTime - tickTime / 1000000L;
-    if (sleepTime > 0L) {
+      // ## calculate next generation
+      final CompletableFuture<Void>[] allFutures =
+          Arrays.stream(this.calcTickParts)
+              .map(x -> CompletableFuture.runAsync(x))
+              .toArray(size -> new CompletableFuture[size]);
+      final CompletableFuture<Void> allDoneFuture = CompletableFuture.allOf(allFutures);
       try {
-        Thread.sleep(sleepTime);
+        allDoneFuture.get();
       } catch (final Exception e) {
-        // ### ignore
+        e.printStackTrace();
+        return;
       }
+
+      // ## calculate time spend for this tick
+      final var tickTime = System.nanoTime() - start;
+      this.tpsLabel.add(tickTime);
+
+      // ## sleep
+      final var sleepTime = this.minTickTime - tickTime / 1000000L;
+      if (sleepTime > 0L) {
+        try {
+          Thread.sleep(sleepTime);
+        } catch (final Exception e) {
+          // ### ignore
+        }
+      }
+
+      // ## swap the world data a and b; a stays primary
+      final var tmp = GamePanel.this.worldDataA;
+      GamePanel.this.worldDataA = GamePanel.this.worldDataB;
+      GamePanel.this.worldDataB = tmp;
+
+      // ## pass the new generation to the UI
+      this.worldUI.draw(GamePanel.this.worldDataA);
     }
-
-    // ## swap the world data a and b; a stays primary
-    final var tmp = GamePanel.this.worldDataA;
-    GamePanel.this.worldDataA = GamePanel.this.worldDataB;
-    GamePanel.this.worldDataB = tmp;
-
-    // ## pass the new generation to the UI
-    this.worldUI.draw(GamePanel.this.worldDataA);
   }
 }
