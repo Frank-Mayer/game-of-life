@@ -48,17 +48,17 @@ public class MyMenuBar extends JMenuBar {
           }
         });
     ctrlMenu.add(loadMenuItem);
-
-    // ### add a menu to control the world
-    final var worldMenu = new JMenu("World");
-    menuBar.add(worldMenu);
-    final var clearMenuItem = new JMenuItem("Clear");
+        final var clearMenuItem = new JMenuItem("Clear");
     clearMenuItem.addActionListener(
         e -> {
           final var gol = (GamePanel) inFrame.getContentPane();
           gol.clear();
         });
-    worldMenu.add(clearMenuItem);
+    ctrlMenu.add(clearMenuItem);
+
+    // ### add a menu to control the world
+    final var styleMenu = new JMenu("Style");
+    menuBar.add(styleMenu);
     final var aliveColorMenuItem = new JMenuItem("Alive Color");
     aliveColorMenuItem.addActionListener(
         e -> {
@@ -69,7 +69,7 @@ public class MyMenuBar extends JMenuBar {
             gol.setAliveColor(color);
           }
         });
-    worldMenu.add(aliveColorMenuItem);
+    styleMenu.add(aliveColorMenuItem);
     final var deadColorMenuItem = new JMenuItem("Dead Color");
     deadColorMenuItem.addActionListener(
         e -> {
@@ -80,7 +80,7 @@ public class MyMenuBar extends JMenuBar {
             gol.setDeadColor(color);
           }
         });
-    worldMenu.add(deadColorMenuItem);
+    styleMenu.add(deadColorMenuItem);
 
     return menuBar;
   }

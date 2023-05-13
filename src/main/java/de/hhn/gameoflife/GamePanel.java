@@ -58,7 +58,13 @@ public class GamePanel extends JPanel {
     // ## min tick time slider (delay)
     final var minTickTimeLabel = new JLabel("Min Tick Time (0ms)");
     this.add(minTickTimeLabel);
-    final var minTickTimeSlider = new JSlider(0, 500, 0);
+    final var minTickTimeSlider = new JSlider(0, 1000, 0);
+    minTickTimeSlider.setPaintLabels(true);
+    minTickTimeSlider.setPaintTrack(true);
+    minTickTimeSlider.setPaintTicks(true);
+    minTickTimeSlider.setMajorTickSpacing(100);
+    minTickTimeSlider.setMinorTickSpacing(10);
+    minTickTimeSlider.setSnapToTicks(true);
     minTickTimeSlider.addChangeListener(
         e -> {
           this.minTickTime = minTickTimeSlider.getValue();
