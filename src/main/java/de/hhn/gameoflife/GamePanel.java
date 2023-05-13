@@ -19,7 +19,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import javax.imageio.ImageIO;
 import javax.swing.BoxLayout;
-import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
@@ -93,7 +92,8 @@ public class GamePanel extends JPanel {
     this.worldUI = new WorldUI(this.worldDataA, width, height);
     this.add(this.worldUI);
     // ### add mouse listener to toggle cells
-    final var newState = useState(false);
+    final var drawNewState = useState(false);
+    final var wasPaused = useState(false);
     this.worldUI.addMouseListener(
         new MouseListener() {
           @Override
@@ -101,12 +101,18 @@ public class GamePanel extends JPanel {
 
           @Override
           public void mousePressed(final MouseEvent e) {
-            newState.set(GamePanel.this.worldUI.togglePoint(e.getPoint()));
-            GamePanel.this.worldUI.draw();
+            wasPaused.set(GamePanel.this.paused);
+            GamePanel.this.paused = true;
+            synchronized (GamePanel.this.lock) {
+              drawNewState.set(GamePanel.this.worldUI.togglePoint(e.getPoint()));
+              GamePanel.this.worldUI.draw();
+            }
           }
 
           @Override
-          public void mouseReleased(final MouseEvent e) {}
+          public void mouseReleased(final MouseEvent e) {
+            GamePanel.this.paused = wasPaused.get();
+          }
 
           @Override
           public void mouseEntered(final MouseEvent e) {}
@@ -118,8 +124,10 @@ public class GamePanel extends JPanel {
         new MouseMotionListener() {
           @Override
           public void mouseDragged(final MouseEvent e) {
-            worldUI.togglePoint(e.getPoint(), newState.get());
-            GamePanel.this.worldUI.draw();
+            synchronized (GamePanel.this.lock) {
+              worldUI.togglePoint(e.getPoint(), drawNewState.get());
+              GamePanel.this.worldUI.draw();
+            }
           }
 
           @Override
@@ -127,7 +135,7 @@ public class GamePanel extends JPanel {
         });
 
     this.sheduler = Executors.newSingleThreadScheduledExecutor();
-    if (this.worldSize >= 1_048_576) { // 1_048_576 = 1024 * 1024
+    if (this.worldSize >= 1_048_576) { // 1048576 = 1024 * 1024
       final var partsCount = Math.max(1, Runtime.getRuntime().availableProcessors() / 2);
       System.out.println("partsCount = " + partsCount);
       this.calcTickParts = new Runnable[partsCount];
