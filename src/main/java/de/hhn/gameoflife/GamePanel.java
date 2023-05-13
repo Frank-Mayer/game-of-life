@@ -2,10 +2,14 @@ package de.hhn.gameoflife;
 
 import static de.hhn.gameoflife.State.useState;
 
+import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Random;
@@ -13,7 +17,11 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import javax.imageio.ImageIO;
 import javax.swing.BoxLayout;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSlider;
@@ -21,6 +29,7 @@ import javax.swing.JSlider;
 public class GamePanel extends JPanel {
 
   private final int worldWidth;
+  private final int worldHeight;
   private final int worldSize;
   private final int worldSizeMinusWorldWidth;
   private final int worldSizePlusWorldWidth;
@@ -41,6 +50,7 @@ public class GamePanel extends JPanel {
   private long minTickTime = 0;
 
   private Runnable[] calcTickParts;
+  private final Object lock = new Object();
 
   public GamePanel(final int width, final int height) {
 
@@ -65,6 +75,7 @@ public class GamePanel extends JPanel {
 
     // # initialize the "world"
     this.worldWidth = width;
+    this.worldHeight = height;
     this.worldSize = width * height;
     this.worldSizeMinusWorldWidth = this.worldSize - this.worldWidth;
     this.worldSizePlusWorldWidth = this.worldSize + this.worldWidth;
@@ -86,8 +97,7 @@ public class GamePanel extends JPanel {
     this.worldUI.addMouseListener(
         new MouseListener() {
           @Override
-          public void mouseClicked(final MouseEvent e) {
-          }
+          public void mouseClicked(final MouseEvent e) {}
 
           @Override
           public void mousePressed(final MouseEvent e) {
@@ -96,16 +106,13 @@ public class GamePanel extends JPanel {
           }
 
           @Override
-          public void mouseReleased(final MouseEvent e) {
-          }
+          public void mouseReleased(final MouseEvent e) {}
 
           @Override
-          public void mouseEntered(final MouseEvent e) {
-          }
+          public void mouseEntered(final MouseEvent e) {}
 
           @Override
-          public void mouseExited(final MouseEvent e) {
-          }
+          public void mouseExited(final MouseEvent e) {}
         });
     this.worldUI.addMouseMotionListener(
         new MouseMotionListener() {
@@ -116,8 +123,7 @@ public class GamePanel extends JPanel {
           }
 
           @Override
-          public void mouseMoved(final MouseEvent e) {
-          }
+          public void mouseMoved(final MouseEvent e) {}
         });
 
     this.sheduler = Executors.newSingleThreadScheduledExecutor();
@@ -129,9 +135,10 @@ public class GamePanel extends JPanel {
       for (int i = 0; i < partsCount; ++i) {
         final var start = partSize * i;
         final var end = partSize * (i + 1);
-        this.calcTickParts[i] = () -> {
-          calcTick(start, end);
-        };
+        this.calcTickParts[i] =
+            () -> {
+              calcTick(start, end);
+            };
       }
       // # start the game loop
       this.sheduler.scheduleWithFixedDelay(this::tickAsync, 500, 1, TimeUnit.MILLISECONDS);
@@ -200,12 +207,14 @@ public class GamePanel extends JPanel {
       // ### check all neighbors
       livingNeighbors = 0;
       // #### 1: north
-      neighborIndex = i + GamePanel.this.worldSizeMinusWorldWidth & GamePanel.this.worldSizeMinusOne;
+      neighborIndex =
+          i + GamePanel.this.worldSizeMinusWorldWidth & GamePanel.this.worldSizeMinusOne;
       if (GamePanel.this.worldDataA.get(neighborIndex)) {
         ++livingNeighbors;
       }
       // #### 2: north-east
-      neighborIndex = iPlusOne + GamePanel.this.worldSizeMinusWorldWidth & GamePanel.this.worldSizeMinusOne;
+      neighborIndex =
+          iPlusOne + GamePanel.this.worldSizeMinusWorldWidth & GamePanel.this.worldSizeMinusOne;
       if (GamePanel.this.worldDataA.get(neighborIndex)) {
         ++livingNeighbors;
       }
@@ -225,8 +234,9 @@ public class GamePanel extends JPanel {
         ++livingNeighbors;
       }
       // #### 6: south-west
-      neighborIndex = iMinusOne + GamePanel.this.worldWidth + GamePanel.this.worldSize
-          & GamePanel.this.worldSizeMinusOne;
+      neighborIndex =
+          iMinusOne + GamePanel.this.worldWidth + GamePanel.this.worldSize
+              & GamePanel.this.worldSizeMinusOne;
       if (GamePanel.this.worldDataA.get(neighborIndex)) {
         ++livingNeighbors;
       }
@@ -236,7 +246,8 @@ public class GamePanel extends JPanel {
         ++livingNeighbors;
       }
       // #### 8: north-west
-      neighborIndex = iMinusOne - GamePanel.this.worldSizePlusWorldWidth & GamePanel.this.worldSizeMinusOne;
+      neighborIndex =
+          iMinusOne - GamePanel.this.worldSizePlusWorldWidth & GamePanel.this.worldSizeMinusOne;
       if (GamePanel.this.worldDataA.get(neighborIndex)) {
         ++livingNeighbors;
       }
@@ -271,39 +282,86 @@ public class GamePanel extends JPanel {
     return this.worldDataB;
   }
 
+  // # load world data from an image file
+  public void load(final File imageFile) {
+    final var wasPaused = this.paused;
+    this.paused = true;
+    synchronized (this.lock) {
+      BufferedImage img;
+      try {
+        img = ImageIO.read(imageFile);
+      } catch (final IOException e) {
+        final var dialog = new JDialog();
+        dialog.setLayout(new BorderLayout());
+        dialog.add(new JLabel("Error loading image file: " + e.getMessage()), BorderLayout.CENTER);
+        dialog.add(
+            new JButton("OK") {
+              {
+                addActionListener(e -> dialog.dispose());
+              }
+            },
+            BorderLayout.SOUTH);
+        dialog.pack();
+        dialog.setLocationRelativeTo(this.worldUI);
+        dialog.setVisible(true);
+        return;
+      }
+      BufferedImage resized =
+          new BufferedImage(this.worldWidth, this.worldHeight, BufferedImage.TYPE_INT_RGB);
+      final var g = resized.createGraphics();
+      g.drawImage(img, 0, 0, this.worldWidth, this.worldHeight, null);
+      // ## apply filters
+      resized = Dithering.floydSteinberg(Dithering.grayScale(resized));
+      // ## write pixels into world data
+      for (int y = 0; y < this.worldHeight; ++y) {
+        for (int x = 0; x < this.worldWidth; ++x) {
+          final var pixel = resized.getRGB(x, y);
+          final var redChannel = (pixel >> 16) & 0xFF;
+          final var index = y * this.worldWidth + x;
+          this.worldDataA.set(index, redChannel > 127);
+        }
+      }
+      this.worldUI.draw(this.worldDataA);
+      g.dispose();
+    }
+    this.paused = wasPaused;
+  }
+
   private void tickSync() {
     // ## check if the game is running
     if (this.paused) {
       return;
     }
 
-    // ## save start time
-    final var start = System.nanoTime();
+    synchronized (this.lock) {
+      // ## save start time
+      final var start = System.nanoTime();
 
-    // ## calculate next generation
-    calcTick(0, this.worldSize);
+      // ## calculate next generation
+      calcTick(0, this.worldSize);
 
-    // ## calculate time spend for this tick
-    final var tickTime = System.nanoTime() - start;
-    this.tpsLabel.add(tickTime);
+      // ## calculate time spend for this tick
+      final var tickTime = System.nanoTime() - start;
+      this.tpsLabel.add(tickTime);
 
-    // ## sleep
-    final var sleepTime = this.minTickTime - tickTime / 1000000L;
-    if (sleepTime > 0L) {
-      try {
-        Thread.sleep(sleepTime);
-      } catch (final Exception e) {
-        // ### ignore
+      // ## sleep
+      final var sleepTime = this.minTickTime - tickTime / 1000000L;
+      if (sleepTime > 0L) {
+        try {
+          Thread.sleep(sleepTime);
+        } catch (final Exception e) {
+          // ### ignore
+        }
       }
+
+      // ## swap the world data a and b; a stays primary
+      final var tmp = GamePanel.this.worldDataA;
+      GamePanel.this.worldDataA = GamePanel.this.worldDataB;
+      GamePanel.this.worldDataB = tmp;
+
+      // ## pass the new generation to the UI
+      this.worldUI.draw(GamePanel.this.worldDataA);
     }
-
-    // ## swap the world data a and b; a stays primary
-    final var tmp = GamePanel.this.worldDataA;
-    GamePanel.this.worldDataA = GamePanel.this.worldDataB;
-    GamePanel.this.worldDataB = tmp;
-
-    // ## pass the new generation to the UI
-    this.worldUI.draw(GamePanel.this.worldDataA);
   }
 
   private void tickAsync() {
@@ -312,41 +370,44 @@ public class GamePanel extends JPanel {
       return;
     }
 
-    // ## save start time
-    final var start = System.nanoTime();
+    synchronized (this.lock) {
+      // ## save start time
+      final var start = System.nanoTime();
 
-    // ## calculate next generation
-    final CompletableFuture<Void>[] allFutures = Arrays.stream(this.calcTickParts)
-        .map(x -> CompletableFuture.runAsync(x))
-        .toArray(size -> new CompletableFuture[size]);
-    final CompletableFuture<Void> allDoneFuture = CompletableFuture.allOf(allFutures);
-    try {
-      allDoneFuture.get();
-    } catch (final Exception e) {
-      e.printStackTrace();
-      return;
-    }
-
-    // ## calculate time spend for this tick
-    final var tickTime = System.nanoTime() - start;
-    this.tpsLabel.add(tickTime);
-
-    // ## sleep
-    final var sleepTime = this.minTickTime - tickTime / 1000000L;
-    if (sleepTime > 0L) {
+      // ## calculate next generation
+      final CompletableFuture<Void>[] allFutures =
+          Arrays.stream(this.calcTickParts)
+              .map(x -> CompletableFuture.runAsync(x))
+              .toArray(size -> new CompletableFuture[size]);
+      final CompletableFuture<Void> allDoneFuture = CompletableFuture.allOf(allFutures);
       try {
-        Thread.sleep(sleepTime);
+        allDoneFuture.get();
       } catch (final Exception e) {
-        // ### ignore
+        e.printStackTrace();
+        return;
       }
+
+      // ## calculate time spend for this tick
+      final var tickTime = System.nanoTime() - start;
+      this.tpsLabel.add(tickTime);
+
+      // ## sleep
+      final var sleepTime = this.minTickTime - tickTime / 1000000L;
+      if (sleepTime > 0L) {
+        try {
+          Thread.sleep(sleepTime);
+        } catch (final Exception e) {
+          // ### ignore
+        }
+      }
+
+      // ## swap the world data a and b; a stays primary
+      final var tmp = GamePanel.this.worldDataA;
+      GamePanel.this.worldDataA = GamePanel.this.worldDataB;
+      GamePanel.this.worldDataB = tmp;
+
+      // ## pass the new generation to the UI
+      this.worldUI.draw(GamePanel.this.worldDataA);
     }
-
-    // ## swap the world data a and b; a stays primary
-    final var tmp = GamePanel.this.worldDataA;
-    GamePanel.this.worldDataA = GamePanel.this.worldDataB;
-    GamePanel.this.worldDataB = tmp;
-
-    // ## pass the new generation to the UI
-    this.worldUI.draw(GamePanel.this.worldDataA);
   }
 }
