@@ -111,4 +111,9 @@ public class WorldUI extends JPanel {
     }
     g.drawImage(this.buffer, 0, 0, this.getWidth(), this.getHeight(), null);
   }
+
+  // ## get the current worlds image
+  public BufferedImage getImage() {
+    return this.buffer;
+  }
 }

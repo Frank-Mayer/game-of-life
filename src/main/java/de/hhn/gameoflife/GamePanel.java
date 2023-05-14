@@ -8,7 +8,6 @@ import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Random;
@@ -306,7 +305,7 @@ public class GamePanel extends JPanel {
           this.paused = wasPaused;
           return;
         }
-      } catch (final IOException e) {
+      } catch (final Exception e) {
         Alert.show("Error", e.getMessage(), this.worldUI);
         this.paused = wasPaused;
         return;
@@ -328,6 +327,27 @@ public class GamePanel extends JPanel {
       }
       this.worldUI.draw(this.worldDataA);
       g.dispose();
+    }
+    this.paused = wasPaused;
+  }
+
+  // # save world data to an image file
+  public void save(final File imageFile) {
+    final var wasPaused = this.paused;
+    this.paused = true;
+    synchronized (this.lock) {
+      final var img = this.worldUI.getImage();
+      final var fileName = imageFile.getName();
+      final var dotIndex = fileName.lastIndexOf('.');
+      final var ext =
+          dotIndex == -1 || dotIndex == fileName.length() - 1
+              ? "jpeg"
+              : fileName.substring(dotIndex + 1);
+      try {
+        ImageIO.write(img, ext, imageFile);
+      } catch (final Exception e) {
+        Alert.show("Error", e.getMessage(), this.worldUI);
+      }
     }
     this.paused = wasPaused;
   }

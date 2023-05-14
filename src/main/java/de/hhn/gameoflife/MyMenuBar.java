@@ -11,8 +11,12 @@ import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.event.InternalFrameAdapter;
 import javax.swing.event.InternalFrameEvent;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 public class MyMenuBar extends JMenuBar {
+
+  private static final FileNameExtensionFilter imageFileFilter =
+      new FileNameExtensionFilter("Image files", "jpg", "jpeg", "png", "gif");
 
   // ## create a menu bar for an internal frame
   private static JMenuBar makeInternalFrameMenuBar(final JInternalFrame inFrame) {
@@ -21,11 +25,6 @@ public class MyMenuBar extends JMenuBar {
     // ### add a menu to control the internal frame
     final var ctrlMenu = new JMenu("Control");
     menuBar.add(ctrlMenu);
-
-    // #### add a menu item to close the internal frame
-    final var closeMenuItem = new JMenuItem("Close");
-    closeMenuItem.addActionListener(e -> inFrame.dispose());
-    ctrlMenu.add(closeMenuItem);
 
     // #### add a menu item to pause / resume the game
     final var pauseMenuItem = new JMenuItem("Start");
@@ -42,13 +41,30 @@ public class MyMenuBar extends JMenuBar {
         e -> {
           final var gol = (GamePanel) inFrame.getContentPane();
           final var fileChooser = new JFileChooser();
+          fileChooser.setFileFilter(imageFileFilter);
           final var result = fileChooser.showOpenDialog(inFrame);
           if (result == JFileChooser.APPROVE_OPTION) {
             gol.load(fileChooser.getSelectedFile());
           }
         });
     ctrlMenu.add(loadMenuItem);
-        final var clearMenuItem = new JMenuItem("Clear");
+
+    // #### add menu item to save game state to image file
+    final var saveMenuItem = new JMenuItem("Save Image");
+    saveMenuItem.addActionListener(
+        e -> {
+          final var gol = (GamePanel) inFrame.getContentPane();
+          final var fileChooser = new JFileChooser();
+          fileChooser.setFileFilter(imageFileFilter);
+          final var result = fileChooser.showSaveDialog(inFrame);
+          if (result == JFileChooser.APPROVE_OPTION) {
+            gol.save(fileChooser.getSelectedFile());
+          }
+        });
+    ctrlMenu.add(saveMenuItem);
+
+    // #### add menu item to cklear the game state
+    final var clearMenuItem = new JMenuItem("Clear");
     clearMenuItem.addActionListener(
         e -> {
           final var gol = (GamePanel) inFrame.getContentPane();
@@ -56,7 +72,12 @@ public class MyMenuBar extends JMenuBar {
         });
     ctrlMenu.add(clearMenuItem);
 
-    // ### add a menu to control the world
+    // #### add a menu item to close the internal frame
+    final var closeMenuItem = new JMenuItem("Quit");
+    closeMenuItem.addActionListener(e -> inFrame.dispose());
+    ctrlMenu.add(closeMenuItem);
+
+    // ### add a menu to control the world style
     final var styleMenu = new JMenu("Style");
     menuBar.add(styleMenu);
     final var aliveColorMenuItem = new JMenuItem("Alive Color");
