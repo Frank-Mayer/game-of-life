@@ -13,20 +13,21 @@ import javax.swing.event.InternalFrameAdapter;
 import javax.swing.event.InternalFrameEvent;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
+/** A menu bar for the game. */
 public class MyMenuBar extends JMenuBar {
 
   private static final FileNameExtensionFilter imageFileFilter =
       new FileNameExtensionFilter("Image files", "jpg", "jpeg", "png", "gif");
 
-  // ## create a menu bar for an internal frame
+  /** create a menu bar for an internal frame */
   private static JMenuBar makeInternalFrameMenuBar(final JInternalFrame inFrame) {
     final var menuBar = new JMenuBar();
 
-    // ### add a menu to control the internal frame
+    // add a menu to control the internal frame
     final var ctrlMenu = new JMenu("Control");
     menuBar.add(ctrlMenu);
 
-    // #### add a menu item to pause / resume the game
+    // add a menu item to pause / resume the game
     final var pauseMenuItem = new JMenuItem("Start");
     pauseMenuItem.addActionListener(
         e -> {
@@ -35,7 +36,7 @@ public class MyMenuBar extends JMenuBar {
         });
     ctrlMenu.add(pauseMenuItem);
 
-    // #### add menu item to load game state from image file
+    // add menu item to load game state from image file
     final var loadMenuItem = new JMenuItem("Load Image");
     loadMenuItem.addActionListener(
         e -> {
@@ -49,7 +50,7 @@ public class MyMenuBar extends JMenuBar {
         });
     ctrlMenu.add(loadMenuItem);
 
-    // #### add menu item to save game state to image file
+    // add menu item to save game state to image file
     final var saveMenuItem = new JMenuItem("Save Image");
     saveMenuItem.addActionListener(
         e -> {
@@ -63,7 +64,7 @@ public class MyMenuBar extends JMenuBar {
         });
     ctrlMenu.add(saveMenuItem);
 
-    // #### add menu item to cklear the game state
+    // add menu item to cklear the game state
     final var clearMenuItem = new JMenuItem("Clear");
     clearMenuItem.addActionListener(
         e -> {
@@ -72,12 +73,12 @@ public class MyMenuBar extends JMenuBar {
         });
     ctrlMenu.add(clearMenuItem);
 
-    // #### add a menu item to close the internal frame
+    // add a menu item to close the internal frame
     final var closeMenuItem = new JMenuItem("Quit");
     closeMenuItem.addActionListener(e -> inFrame.dispose());
     ctrlMenu.add(closeMenuItem);
 
-    // ### add a menu to control the world style
+    // add a menu to control the world style
     final var styleMenu = new JMenu("Style");
     menuBar.add(styleMenu);
     final var aliveColorMenuItem = new JMenuItem("Alive Color");
@@ -124,15 +125,15 @@ public class MyMenuBar extends JMenuBar {
     this.add(newInstanceMenu);
     this.deskPane = deskPane;
 
-    // ## calculate preferred sub-frame size
+    // calculate preferred sub-frame size
     final var maxWindowBoulds =
         GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds().getSize();
     final var maxWindowSide =
         (int) (Math.min(maxWindowBoulds.width, maxWindowBoulds.height) * 0.75);
     final var preferredFrameSize = new Dimension(maxWindowSide, maxWindowSide);
 
-    // ## add menu items for different resolutions
-    for (int i = 5; i < 13; ++i) {
+    // add menu items for different resolutions
+    for (int i = 6; i < 14; ++i) {
       final var res = 1 << i;
       newInstanceMenu.add(this.makeInternalFrameCreatorMenuItem(deskPane, preferredFrameSize, res));
     }
@@ -147,13 +148,13 @@ public class MyMenuBar extends JMenuBar {
     newInstanceMenu.add(testMenuItem);
   }
 
-  // ## create a menu item to create a new internal frame
+  /** create a menu item to create a new internal frame */
   private JMenuItem makeInternalFrameCreatorMenuItem(
       final JDesktopPane deskPane, final Dimension preferredFrameSize, final int res) {
     final var menuItem = new JMenuItem(String.format("%dx%d", res, res));
     menuItem.addActionListener(
         e -> {
-          // ## create a new internal frame
+          // create a new internal frame
           final var inFrame =
               new JInternalFrame(
                   String.format("Game of Life %dx%d", res, res), true, true, true, true);

@@ -3,6 +3,7 @@ package de.hhn.gameoflife;
 import static de.hhn.gameoflife.State.useState;
 
 import java.awt.Color;
+import java.awt.Point;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
@@ -21,6 +22,11 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSlider;
 
+/**
+ * The main game panel.
+ *
+ * <p>This class encapsulates a Game of Life. Indipendent of the Window management.
+ */
 public class GamePanel extends JPanel {
 
   private final int worldWidth;
@@ -32,29 +38,41 @@ public class GamePanel extends JPanel {
   private final WorldUI worldUI;
   private final TPS tpsLabel;
 
+  /** the executor service to schedule the ticks */
   private final ScheduledExecutorService sheduler;
 
-  // # world data
-  // ## primary world data
+  // world data
+  /** primary world data */
   private BitSet worldDataA;
-  // ## secondary world data; temporary storage for the next generation
+
+  /** secondary world data; temporary storage for the next generation */
   private BitSet worldDataB;
 
   private boolean paused = true;
 
+  /** the minimum time for one tick in ms */
   private long minTickTime = 0;
 
+  /**
+   * the tick parts to be executed in parallel.
+   *
+   * <p>Only used for the parallel implementation (for big worlds).
+   */
   private Runnable[] calcTickParts;
+
+  /** lock object to synchronize write access to the world data */
   private final Object lock = new Object();
+
+  private boolean disposed = false;
 
   public GamePanel(final int width, final int height) {
 
-    // # initialize ui
+    // initialize ui
     this.setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
-    // ## tick time label
+    // tick time label
     this.tpsLabel = new TPS();
     this.add(this.tpsLabel);
-    // ## min tick time slider (delay)
+    // min tick time slider (delay)
     final var minTickTimeLabel = new JLabel("Min Tick Time (0ms)");
     this.add(minTickTimeLabel);
     final var minTickTimeSlider = new JSlider(0, 1000, 0);
@@ -74,7 +92,7 @@ public class GamePanel extends JPanel {
     minTickTimeSlider.setPaintTicks(true);
     this.add(minTickTimeSlider);
 
-    // # initialize the "world"
+    // initialize the "world"
     this.worldWidth = width;
     this.worldHeight = height;
     this.worldSize = width * height;
@@ -85,15 +103,15 @@ public class GamePanel extends JPanel {
     this.worldDataB = new BitSet(this.worldSize);
     final var rand = new Random();
     for (int i = 0; i < this.worldSize; ++i) {
-      // ## randomly decide if the cell is alive or dead
+      // randomly decide if the cell is alive or dead
       final var alive = rand.nextBoolean();
       this.worldDataA.set(i, alive);
       this.worldDataB.set(i, alive);
     }
-    // ## world ui to display the world
+    // world ui to display the world
     this.worldUI = new WorldUI(this.worldDataA, width, height);
     this.add(this.worldUI);
-    // ### add mouse listener to toggle cells
+    // add mouse listener to toggle cells
     final var drawNewState = useState(false);
     final var wasPaused = useState(false);
     this.worldUI.addMouseListener(
@@ -106,8 +124,8 @@ public class GamePanel extends JPanel {
             wasPaused.set(GamePanel.this.paused);
             GamePanel.this.paused = true;
             synchronized (GamePanel.this.lock) {
-              drawNewState.set(GamePanel.this.worldUI.togglePoint(e.getPoint()));
-              GamePanel.this.worldUI.draw();
+              drawNewState.set(GamePanel.this.togglePoint(e.getPoint()));
+              GamePanel.this.worldUI.draw(GamePanel.this.worldDataA);
             }
           }
 
@@ -127,8 +145,8 @@ public class GamePanel extends JPanel {
           @Override
           public void mouseDragged(final MouseEvent e) {
             synchronized (GamePanel.this.lock) {
-              worldUI.togglePoint(e.getPoint(), drawNewState.get());
-              GamePanel.this.worldUI.draw();
+              GamePanel.this.togglePoint(e.getPoint(), drawNewState.get());
+              GamePanel.this.worldUI.draw(GamePanel.this.worldDataA);
             }
           }
 
@@ -137,9 +155,10 @@ public class GamePanel extends JPanel {
         });
 
     this.sheduler = Executors.newSingleThreadScheduledExecutor();
+
+    // how big is the world?
     if (this.worldSize >= 1_048_576) { // 1048576 = 1024 * 1024
       final var partsCount = Math.max(1, Runtime.getRuntime().availableProcessors() / 2);
-      System.out.println("partsCount = " + partsCount);
       this.calcTickParts = new Runnable[partsCount];
       final var partSize = this.worldSize / partsCount;
       for (int i = 0; i < partsCount; ++i) {
@@ -150,21 +169,58 @@ public class GamePanel extends JPanel {
               calcTick(start, end);
             };
       }
-      // # start the game loop
-      this.sheduler.scheduleWithFixedDelay(this::tickAsync, 500, 1, TimeUnit.MILLISECONDS);
+      // start the game loop
+      this.sheduler.scheduleWithFixedDelay(this::tickAsync, 500, 1, TimeUnit.NANOSECONDS);
     } else {
-      System.out.println("single threaded");
-      // # start the game loop
-      this.sheduler.scheduleWithFixedDelay(this::tickSync, 500, 1, TimeUnit.MILLISECONDS);
+      // start the game loop
+      this.sheduler.scheduleWithFixedDelay(this::tickSync, 500, 1, TimeUnit.NANOSECONDS);
     }
   }
 
-  // # free resources
+  /**
+   * Sets the state of the cell at the given point to the given state.
+   *
+   * @param point the point to toggle
+   * @param state the new state of the cell
+   */
+  public void togglePoint(final Point point, final boolean state) {
+    final var cellWidth = (double) GamePanel.this.worldUI.getWidth() / (double) this.worldWidth;
+    final var cellHeight = (double) GamePanel.this.worldUI.getHeight() / (double) this.worldHeight;
+    final var x = (int) (point.x / cellWidth);
+    final var y = (int) (point.y / cellHeight);
+    final var index = (y * this.worldWidth) + x;
+    this.worldDataA.set(index, state);
+  }
+
+  /**
+   * Toggles the state of the cell at the given point and returns its new state.
+   *
+   * @param point the point to toggle
+   * @return the new state of the cell
+   */
+  public boolean togglePoint(final Point point) {
+    final var cellWidth = (double) GamePanel.this.worldUI.getWidth() / (double) this.worldWidth;
+    final var cellHeight = (double) GamePanel.this.worldUI.getHeight() / (double) this.worldHeight;
+    final var x = (int) (point.x / cellWidth);
+    final var y = (int) (point.y / cellHeight);
+    final var index = (y * this.worldWidth) + x;
+    this.worldDataA.flip(index);
+    return this.worldDataA.get(index);
+  }
+
+  /** free resources */
   public void dispose() {
-    this.sheduler.shutdownNow();
-    this.worldDataA = null;
-    this.worldDataB = null;
-    this.worldUI.dispose();
+    synchronized (this.lock) {
+      if (this.disposed) {
+        return;
+      }
+      this.disposed = true;
+      this.paused = true;
+      this.sheduler.shutdownNow();
+      this.worldDataA = null;
+      this.worldDataB = null;
+      this.worldUI.dispose();
+    }
   }
 
   public Color getAliveColor() {
@@ -195,13 +251,14 @@ public class GamePanel extends JPanel {
     this.worldUI.setDeadColor(color);
   }
 
-  // # calculate next generation
+  /** calculate next generation */
   public void calcTick() {
     calcTick(0, this.worldSize);
   }
 
+  /** calculate next generation */
   public void calcTick(final int start, final int end) {
-    // ## initialize local variables
+    // initialize local variables
     int i = start;
     int iMinusOne = start - 1;
     int iPlusOne = start + 1;
@@ -209,63 +266,63 @@ public class GamePanel extends JPanel {
     int neighborIndex;
     boolean alive;
 
-    // ## check all cells in the world
+    // check all cells in the world
     while (i < end) {
-      // ### is this cell currently alive?
+      // is this cell currently alive?
       alive = GamePanel.this.worldDataA.get(i);
 
-      // ### check all neighbors
+      // check all neighbors
       livingNeighbors = 0;
-      // #### 1: north
+      // 1: north
       neighborIndex =
           i + GamePanel.this.worldSizeMinusWorldWidth & GamePanel.this.worldSizeMinusOne;
       if (GamePanel.this.worldDataA.get(neighborIndex)) {
         ++livingNeighbors;
       }
-      // #### 2: north-east
+      // 2: north-east
       neighborIndex =
           iPlusOne + GamePanel.this.worldSizeMinusWorldWidth & GamePanel.this.worldSizeMinusOne;
       if (GamePanel.this.worldDataA.get(neighborIndex)) {
         ++livingNeighbors;
       }
-      // #### 3: east
+      // 3: east
       neighborIndex = iPlusOne & GamePanel.this.worldSizeMinusOne;
       if (GamePanel.this.worldDataA.get(neighborIndex)) {
         ++livingNeighbors;
       }
-      // #### 4: south-east
+      // 4: south-east
       neighborIndex = iPlusOne + GamePanel.this.worldWidth & GamePanel.this.worldSizeMinusOne;
       if (GamePanel.this.worldDataA.get(neighborIndex)) {
         ++livingNeighbors;
       }
-      // #### 5: south
+      // 5: south
       neighborIndex = i + GamePanel.this.worldWidth & GamePanel.this.worldSizeMinusOne;
       if (GamePanel.this.worldDataA.get(neighborIndex)) {
         ++livingNeighbors;
       }
-      // #### 6: south-west
+      // 6: south-west
       neighborIndex =
           iMinusOne + GamePanel.this.worldWidth + GamePanel.this.worldSize
               & GamePanel.this.worldSizeMinusOne;
       if (GamePanel.this.worldDataA.get(neighborIndex)) {
         ++livingNeighbors;
       }
-      // #### 7: west
+      // 7: west
       neighborIndex = iMinusOne + GamePanel.this.worldSize & GamePanel.this.worldSizeMinusOne;
       if (GamePanel.this.worldDataA.get(neighborIndex)) {
         ++livingNeighbors;
       }
-      // #### 8: north-west
+      // 8: north-west
       neighborIndex =
           iMinusOne - GamePanel.this.worldSizePlusWorldWidth & GamePanel.this.worldSizeMinusOne;
       if (GamePanel.this.worldDataA.get(neighborIndex)) {
         ++livingNeighbors;
       }
 
-      // #### alive1 = alive0 ? (2 or 3 neighbors) : (3 neighbors)
+      // alive1 = alive0 ? (2 or 3 neighbors) : (3 neighbors)
       GamePanel.this.worldDataB.set(i, livingNeighbors == 3 || alive && livingNeighbors == 2);
 
-      // #### next cell
+      // next cell
       iMinusOne = i;
       i = iPlusOne++;
     }
@@ -275,7 +332,7 @@ public class GamePanel extends JPanel {
     return this.paused = !this.paused;
   }
 
-  // # clear the world
+  /** clear the world */
   public void clear() {
     this.worldDataA.clear();
     this.worldDataB.clear();
@@ -292,7 +349,7 @@ public class GamePanel extends JPanel {
     return this.worldDataB;
   }
 
-  // # load world data from an image file
+  /** load world data from an image file */
   public void load(final File imageFile) {
     final var wasPaused = this.paused;
     this.paused = true;
@@ -314,9 +371,9 @@ public class GamePanel extends JPanel {
           new BufferedImage(this.worldWidth, this.worldHeight, BufferedImage.TYPE_INT_RGB);
       final var g = resized.createGraphics();
       g.drawImage(img, 0, 0, this.worldWidth, this.worldHeight, null);
-      // ## apply filters
+      // apply filters
       resized = Dithering.floydSteinberg(Dithering.grayScale(resized));
-      // ## write pixels into world data
+      // write pixels into world data
       for (int y = 0; y < this.worldHeight; ++y) {
         for (int x = 0; x < this.worldWidth; ++x) {
           final var pixel = resized.getRGB(x, y);
@@ -331,7 +388,7 @@ public class GamePanel extends JPanel {
     this.paused = wasPaused;
   }
 
-  // # save world data to an image file
+  /** save world data to an image file */
   public void save(final File imageFile) {
     final var wasPaused = this.paused;
     this.paused = true;
@@ -352,54 +409,61 @@ public class GamePanel extends JPanel {
     this.paused = wasPaused;
   }
 
+  /** Trigger tick (next generation) synchronously */
   private void tickSync() {
-    // ## check if the game is running
+    // check if the game is running
     if (this.paused) {
       return;
     }
 
     synchronized (this.lock) {
-      // ## save start time
+      // save start time
       final var start = System.nanoTime();
 
-      // ## calculate next generation
+      // calculate next generation
       calcTick(0, this.worldSize);
 
-      // ## calculate time spend for this tick
+      // calculate time spend for this tick
       final var tickTime = System.nanoTime() - start;
       this.tpsLabel.add(tickTime);
 
-      // ## sleep
+      // sleep if the tick was too fast
       final var sleepTime = this.minTickTime - tickTime / 1000000L;
       if (sleepTime > 0L) {
         try {
           Thread.sleep(sleepTime);
-        } catch (final Exception e) {
-          // ### ignore
+        } catch (final InterruptedException e) {
+          // swap the world data a and b; a stays primary
+          final var tmp = GamePanel.this.worldDataA;
+          GamePanel.this.worldDataA = GamePanel.this.worldDataB;
+          GamePanel.this.worldDataB = tmp;
+
+          return;
         }
       }
 
-      // ## swap the world data a and b; a stays primary
+      // swap the world data a and b; a stays primary
       final var tmp = GamePanel.this.worldDataA;
       GamePanel.this.worldDataA = GamePanel.this.worldDataB;
       GamePanel.this.worldDataB = tmp;
 
-      // ## pass the new generation to the UI
+      // pass the new generation to the UI
       this.worldUI.draw(GamePanel.this.worldDataA);
     }
   }
 
+  /** Trigger tick (next generation) asynchronously */
   private void tickAsync() {
-    // ## check if the game is running
+    // check if the game is running
     if (this.paused) {
       return;
     }
 
     synchronized (this.lock) {
-      // ## save start time
+      // save start time
       final var start = System.nanoTime();
 
-      // ## calculate next generation
+      // calculate next generation
       final CompletableFuture<Void>[] allFutures =
           Arrays.stream(this.calcTickParts)
               .map(x -> CompletableFuture.runAsync(x))
@@ -408,30 +472,35 @@ public class GamePanel extends JPanel {
       try {
         allDoneFuture.get();
       } catch (final Exception e) {
-        e.printStackTrace();
+        // ignore
         return;
       }
 
-      // ## calculate time spend for this tick
+      // calculate time spend for this tick
       final var tickTime = System.nanoTime() - start;
       this.tpsLabel.add(tickTime);
 
-      // ## sleep
+      // sleep if the tick was too fast
       final var sleepTime = this.minTickTime - tickTime / 1000000L;
       if (sleepTime > 0L) {
         try {
           Thread.sleep(sleepTime);
-        } catch (final Exception e) {
-          // ### ignore
+        } catch (final InterruptedException e) {
+          // swap the world data a and b; a stays primary
+          final var tmp = GamePanel.this.worldDataA;
+          GamePanel.this.worldDataA = GamePanel.this.worldDataB;
+          GamePanel.this.worldDataB = tmp;
+
+          return;
         }
       }
 
-      // ## swap the world data a and b; a stays primary
+      // swap the world data a and b; a stays primary
       final var tmp = GamePanel.this.worldDataA;
       GamePanel.this.worldDataA = GamePanel.this.worldDataB;
       GamePanel.this.worldDataB = tmp;
 
-      // ## pass the new generation to the UI
+      // pass the new generation to the UI
       this.worldUI.draw(GamePanel.this.worldDataA);
     }
   }

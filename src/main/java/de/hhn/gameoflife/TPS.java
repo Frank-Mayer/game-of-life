@@ -2,7 +2,7 @@ package de.hhn.gameoflife;
 
 import javax.swing.JLabel;
 
-// # component to render the TPS (ticks per second)
+/** component to render the current tick time */
 public class TPS extends JLabel {
 
   private final double[] timings = new double[32];
@@ -12,7 +12,7 @@ public class TPS extends JLabel {
     this.setText("Tick Time: Unknown");
   }
 
-  // ## add a new timing in nanoseconds
+  /** add a new timing in nanoseconds */
   public void add(final double time) {
     this.timings[this.index] = time;
     if (this.index == 31) { // if (this.index == this.timings.length - 1) {
@@ -23,7 +23,7 @@ public class TPS extends JLabel {
     }
   }
 
-  // ## calculate the average time spend for a tick in milliseconds
+  /** calculate the average time spend for a tick in milliseconds */
   public double get() {
     double sum = 0d;
     for (final double timing : this.timings) {
