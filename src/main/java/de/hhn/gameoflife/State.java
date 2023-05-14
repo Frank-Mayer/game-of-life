@@ -1,5 +1,12 @@
 package de.hhn.gameoflife;
 
+/**
+ * A simple state container.
+ *
+ * <p>Inspired by React's useState hook.
+ *
+ * <p>Needed to bring state to anonymous classes or lambdas.
+ */
 public class State<T> {
   public static <T> State<T> useState(final T init) {
     return new State<T>(init);

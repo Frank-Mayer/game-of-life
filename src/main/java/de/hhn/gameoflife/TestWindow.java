@@ -6,6 +6,9 @@ import javax.swing.JInternalFrame;
 import javax.swing.JLabel;
 import javax.swing.SwingUtilities;
 
+/**
+ * A window to test the games core logic.
+ */
 public class TestWindow extends JInternalFrame {
 
   private final GamePanel gamePanel;

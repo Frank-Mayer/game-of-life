@@ -6,6 +6,9 @@ import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 
+/**
+ * A simple alert dialog.
+ */
 public class Alert extends JDialog {
   private Alert(final String title, final String message, final Component c) {
     super();

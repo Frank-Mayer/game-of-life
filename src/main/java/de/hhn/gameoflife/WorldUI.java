@@ -2,16 +2,14 @@ package de.hhn.gameoflife;
 
 import java.awt.Color;
 import java.awt.Graphics;
-import java.awt.Point;
 import java.awt.image.BufferedImage;
 import java.util.BitSet;
 import javax.swing.JPanel;
 
-// # component to render the world
+/** component to render the world */
 public class WorldUI extends JPanel {
 
   private final int worldSize;
-  private final int worldWidth;
   private final int logWorldWidth;
   private final int worldWidthMinusOne;
   private final BufferedImage buffer;
@@ -21,7 +19,6 @@ public class WorldUI extends JPanel {
 
   public WorldUI(final BitSet worldData, final int worldWidth, final int worldHeight) {
     this.worldData = (BitSet) worldData.clone();
-    this.worldWidth = worldWidth;
     this.logWorldWidth = (int) (Math.log(worldWidth) / Math.log(2));
     this.worldWidthMinusOne = worldWidth - 1;
     this.worldSize = worldWidth * worldHeight;
@@ -52,45 +49,25 @@ public class WorldUI extends JPanel {
     this.draw(g);
   }
 
-  // ## default paint method
   @Override
   public void paint(final Graphics g) {
     this.draw(g);
   }
 
-  // ## free resources
+  /** free resources */
   public void dispose() {
     this.buffer.flush();
     this.buffer.getGraphics().dispose();
     this.worldData = null;
   }
 
-  public void togglePoint(final Point point, final boolean state) {
-    final var cellWidth = (double) this.getWidth() / (double) this.worldWidth;
-    final var cellHeight = (double) this.getHeight() / (double) this.worldWidth;
-    final var x = (int) (point.x / cellWidth);
-    final var y = (int) (point.y / cellHeight);
-    final var index = (y * this.worldWidth) + x;
-    this.worldData.set(index, state);
-  }
-
-  public boolean togglePoint(final Point point) {
-    final var cellWidth = (double) this.getWidth() / (double) this.worldWidth;
-    final var cellHeight = (double) this.getHeight() / (double) this.worldWidth;
-    final var x = (int) (point.x / cellWidth);
-    final var y = (int) (point.y / cellHeight);
-    final var index = (y * this.worldWidth) + x;
-    this.worldData.flip(index);
-    return this.worldData.get(index);
-  }
-
-  // ## draw the given worlds state
+  /** draw the given worlds state */
   public void draw(final BitSet newData) {
     this.worldData = newData;
     this.draw();
   }
 
-  // ## draw the current worlds state
+  /** draw the current worlds state */
   public void draw() {
     final var g = this.getGraphics();
     if (g == null) {
@@ -99,7 +76,7 @@ public class WorldUI extends JPanel {
     this.draw(g);
   }
 
-  // ## draw the current worlds state using the given graphics object
+  /** draw the current worlds state using the given graphics object */
   public void draw(final Graphics g) {
     int i;
     int x;
@@ -112,7 +89,7 @@ public class WorldUI extends JPanel {
     g.drawImage(this.buffer, 0, 0, this.getWidth(), this.getHeight(), null);
   }
 
-  // ## get the current worlds image
+  /** get the current worlds image */
   public BufferedImage getImage() {
     return this.buffer;
   }
