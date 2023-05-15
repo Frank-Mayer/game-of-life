@@ -32,9 +32,8 @@ public class GamePanel extends JPanel {
   private final int worldWidth;
   private final int worldHeight;
   private final int worldSize;
-  private final int worldSizeMinusWorldWidth;
-  private final int worldSizePlusWorldWidth;
-  private final int worldSizeMinusOne;
+  private final int worldHeightMinusOne;
+  private final int logWorldWidth;
   private final WorldUI worldUI;
   private final TPS tpsLabel;
 
@@ -96,9 +95,8 @@ public class GamePanel extends JPanel {
     this.worldWidth = width;
     this.worldHeight = height;
     this.worldSize = width * height;
-    this.worldSizeMinusWorldWidth = this.worldSize - this.worldWidth;
-    this.worldSizePlusWorldWidth = this.worldSize + this.worldWidth;
-    this.worldSizeMinusOne = this.worldSize - 1;
+    this.worldHeightMinusOne = this.worldHeight - 1;
+    this.logWorldWidth = (int) Math.ceil(Math.log(this.worldWidth) / Math.log(2));
     this.worldDataA = new BitSet(this.worldSize);
     this.worldDataB = new BitSet(this.worldSize);
     final var rand = new Random();
@@ -259,72 +257,49 @@ public class GamePanel extends JPanel {
   /** calculate next generation */
   public void calcTick(final int start, final int end) {
     // initialize local variables
+    int x = start % this.worldWidth;
+    int y = start / this.worldWidth;
     int i = start;
-    int iMinusOne = start - 1;
-    int iPlusOne = start + 1;
+    int neighborsIndexes[] = new int[8];
     int livingNeighbors;
     int neighborIndex;
     boolean alive;
 
-    // check all cells in the world
-    while (i < end) {
-      // is this cell currently alive?
-      alive = GamePanel.this.worldDataA.get(i);
+    // iterate over all cells
+    for (; y < worldHeight && i < end; ++y) {
+      for (; x < worldWidth && i < end; ++x) {
+        // calculate the indexes of the neighbors for a torus world
+        neighborsIndexes[0] =
+            (((y - 1 + this.worldHeight) % this.worldHeight) << this.logWorldWidth)
+                + ((x - 1 + this.worldWidth) % this.worldWidth);
+        neighborsIndexes[1] =
+            (((y - 1 + this.worldHeight) % this.worldHeight) << this.logWorldWidth) + x;
+        neighborsIndexes[2] =
+            (((y - 1 + this.worldHeight) % this.worldHeight) << this.logWorldWidth)
+                + ((x + 1) % this.worldWidth);
+        neighborsIndexes[3] = (y << this.logWorldWidth) + ((x - 1 + this.worldWidth) % this.worldWidth);
+        neighborsIndexes[4] = (y << this.logWorldWidth) + ((x + 1) % this.worldWidth);
+        neighborsIndexes[5] =
+            (((y + 1) % this.worldHeight) << this.logWorldWidth)
+                + ((x - 1 + this.worldWidth) % this.worldWidth);
+        neighborsIndexes[6] = (((y + 1) % this.worldHeight) << this.logWorldWidth) + x;
+        neighborsIndexes[7] =
+            (((y + 1) % this.worldHeight) << this.logWorldWidth) + ((x + 1) % this.worldWidth);
 
-      // check all neighbors
-      livingNeighbors = 0;
-      // 1: north
-      neighborIndex =
-          i + GamePanel.this.worldSizeMinusWorldWidth & GamePanel.this.worldSizeMinusOne;
-      if (GamePanel.this.worldDataA.get(neighborIndex)) {
-        ++livingNeighbors;
-      }
-      // 2: north-east
-      neighborIndex =
-          iPlusOne + GamePanel.this.worldSizeMinusWorldWidth & GamePanel.this.worldSizeMinusOne;
-      if (GamePanel.this.worldDataA.get(neighborIndex)) {
-        ++livingNeighbors;
-      }
-      // 3: east
-      neighborIndex = iPlusOne & GamePanel.this.worldSizeMinusOne;
-      if (GamePanel.this.worldDataA.get(neighborIndex)) {
-        ++livingNeighbors;
-      }
-      // 4: south-east
-      neighborIndex = iPlusOne + GamePanel.this.worldWidth & GamePanel.this.worldSizeMinusOne;
-      if (GamePanel.this.worldDataA.get(neighborIndex)) {
-        ++livingNeighbors;
-      }
-      // 5: south
-      neighborIndex = i + GamePanel.this.worldWidth & GamePanel.this.worldSizeMinusOne;
-      if (GamePanel.this.worldDataA.get(neighborIndex)) {
-        ++livingNeighbors;
-      }
-      // 6: south-west
-      neighborIndex =
-          iMinusOne + GamePanel.this.worldWidth + GamePanel.this.worldSize
-              & GamePanel.this.worldSizeMinusOne;
-      if (GamePanel.this.worldDataA.get(neighborIndex)) {
-        ++livingNeighbors;
-      }
-      // 7: west
-      neighborIndex = iMinusOne + GamePanel.this.worldSize & GamePanel.this.worldSizeMinusOne;
-      if (GamePanel.this.worldDataA.get(neighborIndex)) {
-        ++livingNeighbors;
-      }
-      // 8: north-west
-      neighborIndex =
-          iMinusOne - GamePanel.this.worldSizePlusWorldWidth & GamePanel.this.worldSizeMinusOne;
-      if (GamePanel.this.worldDataA.get(neighborIndex)) {
-        ++livingNeighbors;
-      }
+        // count the living neighbors
+        livingNeighbors = 0;
+        alive = this.worldDataA.get(i);
+        for (int j = 0; j < 8; ++j) {
+          neighborIndex = neighborsIndexes[j];
+          if (this.worldDataA.get(neighborIndex)) {
+            ++livingNeighbors;
+          }
+        }
 
-      // alive1 = alive0 ? (2 or 3 neighbors) : (3 neighbors)
-      GamePanel.this.worldDataB.set(i, livingNeighbors == 3 || alive && livingNeighbors == 2);
-
-      // next cell
-      iMinusOne = i;
-      i = iPlusOne++;
+        // alive1 = alive0 ? (2 or 3 neighbors) : (3 neighbors)
+        GamePanel.this.worldDataB.set(i++, livingNeighbors == 3 || alive && livingNeighbors == 2);
+      }
+      x = 0;
     }
   }
 
