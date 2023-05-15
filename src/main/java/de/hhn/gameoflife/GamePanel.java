@@ -260,7 +260,11 @@ public class GamePanel extends JPanel {
   public void calcTick(final int start, final int end) {
     // initialize local variables
     int x = start & this.worldWidthMinusOne;
+    int xPlusOne;
+    int xMinusOne;
     int y = start >> this.logWorldWidth;
+    int yPlusOne;
+    int yMinusOne;
     int i = start;
     int neighborsIndexes[] = new int[8];
     int livingNeighbors;
@@ -269,21 +273,26 @@ public class GamePanel extends JPanel {
 
     // iterate over all cells
     for (; y < worldHeight && i < end; ++y) {
+      yPlusOne = y + 1;
+      yMinusOne = y - 1;
       for (; x < worldWidth && i < end; ++x) {
+        xPlusOne = x + 1;
+        xMinusOne = x - 1;
+
         // calculate the indexes of the neighbors for a torus world
         neighborsIndexes[0] =
-            (((y - 1 + this.worldHeight) & this.worldHeightMinusOne) << this.logWorldWidth)
-                + ((x - 1 + this.worldWidth) & this.worldWidthMinusOne);
+            (((yMinusOne + this.worldHeight) & this.worldHeightMinusOne) << this.logWorldWidth)
+                + ((xMinusOne + this.worldWidth) & this.worldWidthMinusOne);
         neighborsIndexes[1] =
-            (((y - 1 + this.worldHeight) & this.worldHeightMinusOne) << this.logWorldWidth) + x;
+            (((yMinusOne + this.worldHeight) & this.worldHeightMinusOne) << this.logWorldWidth) + x;
         neighborsIndexes[2] =
-            (((y - 1 + this.worldHeight) & this.worldHeightMinusOne) << this.logWorldWidth)
+            (((yMinusOne + this.worldHeight) & this.worldHeightMinusOne) << this.logWorldWidth)
                 + ((x + 1) & this.worldWidthMinusOne);
-        neighborsIndexes[3] = (y << this.logWorldWidth) + ((x - 1 + this.worldWidth) & this.worldWidthMinusOne);
+        neighborsIndexes[3] = (y << this.logWorldWidth) + ((xMinusOne + this.worldWidth) & this.worldWidthMinusOne);
         neighborsIndexes[4] = (y << this.logWorldWidth) + ((x + 1) & this.worldWidthMinusOne);
         neighborsIndexes[5] =
             (((y + 1) & this.worldHeightMinusOne) << this.logWorldWidth)
-                + ((x - 1 + this.worldWidth) & this.worldWidthMinusOne);
+                + ((xMinusOne + this.worldWidth) & this.worldWidthMinusOne);
         neighborsIndexes[6] = (((y + 1) & this.worldHeightMinusOne) << this.logWorldWidth) + x;
         neighborsIndexes[7] =
             (((y + 1) & this.worldHeightMinusOne) << this.logWorldWidth) + ((x + 1) & this.worldWidthMinusOne);
