@@ -33,6 +33,7 @@ public class GamePanel extends JPanel {
   private final int worldHeight;
   private final int worldSize;
   private final int worldHeightMinusOne;
+  private final int worldWidthMinusOne;
   private final int logWorldWidth;
   private final WorldUI worldUI;
   private final TPS tpsLabel;
@@ -96,6 +97,7 @@ public class GamePanel extends JPanel {
     this.worldHeight = height;
     this.worldSize = width * height;
     this.worldHeightMinusOne = this.worldHeight - 1;
+    this.worldWidthMinusOne = this.worldWidth - 1;
     this.logWorldWidth = (int) Math.ceil(Math.log(this.worldWidth) / Math.log(2));
     this.worldDataA = new BitSet(this.worldSize);
     this.worldDataB = new BitSet(this.worldSize);
@@ -257,8 +259,8 @@ public class GamePanel extends JPanel {
   /** calculate next generation */
   public void calcTick(final int start, final int end) {
     // initialize local variables
-    int x = start % this.worldWidth;
-    int y = start / this.worldWidth;
+    int x = start & this.worldWidthMinusOne;
+    int y = start >> this.logWorldWidth;
     int i = start;
     int neighborsIndexes[] = new int[8];
     int livingNeighbors;
@@ -270,21 +272,21 @@ public class GamePanel extends JPanel {
       for (; x < worldWidth && i < end; ++x) {
         // calculate the indexes of the neighbors for a torus world
         neighborsIndexes[0] =
-            (((y - 1 + this.worldHeight) % this.worldHeight) << this.logWorldWidth)
-                + ((x - 1 + this.worldWidth) % this.worldWidth);
+            (((y - 1 + this.worldHeight) & this.worldHeightMinusOne) << this.logWorldWidth)
+                + ((x - 1 + this.worldWidth) & this.worldWidthMinusOne);
         neighborsIndexes[1] =
-            (((y - 1 + this.worldHeight) % this.worldHeight) << this.logWorldWidth) + x;
+            (((y - 1 + this.worldHeight) & this.worldHeightMinusOne) << this.logWorldWidth) + x;
         neighborsIndexes[2] =
-            (((y - 1 + this.worldHeight) % this.worldHeight) << this.logWorldWidth)
-                + ((x + 1) % this.worldWidth);
-        neighborsIndexes[3] = (y << this.logWorldWidth) + ((x - 1 + this.worldWidth) % this.worldWidth);
-        neighborsIndexes[4] = (y << this.logWorldWidth) + ((x + 1) % this.worldWidth);
+            (((y - 1 + this.worldHeight) & this.worldHeightMinusOne) << this.logWorldWidth)
+                + ((x + 1) & this.worldWidthMinusOne);
+        neighborsIndexes[3] = (y << this.logWorldWidth) + ((x - 1 + this.worldWidth) & this.worldWidthMinusOne);
+        neighborsIndexes[4] = (y << this.logWorldWidth) + ((x + 1) & this.worldWidthMinusOne);
         neighborsIndexes[5] =
-            (((y + 1) % this.worldHeight) << this.logWorldWidth)
-                + ((x - 1 + this.worldWidth) % this.worldWidth);
-        neighborsIndexes[6] = (((y + 1) % this.worldHeight) << this.logWorldWidth) + x;
+            (((y + 1) & this.worldHeightMinusOne) << this.logWorldWidth)
+                + ((x - 1 + this.worldWidth) & this.worldWidthMinusOne);
+        neighborsIndexes[6] = (((y + 1) & this.worldHeightMinusOne) << this.logWorldWidth) + x;
         neighborsIndexes[7] =
-            (((y + 1) % this.worldHeight) << this.logWorldWidth) + ((x + 1) % this.worldWidth);
+            (((y + 1) & this.worldHeightMinusOne) << this.logWorldWidth) + ((x + 1) & this.worldWidthMinusOne);
 
         // count the living neighbors
         livingNeighbors = 0;
