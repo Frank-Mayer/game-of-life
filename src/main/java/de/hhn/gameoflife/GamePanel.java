@@ -272,10 +272,10 @@ public class GamePanel extends JPanel {
     boolean alive;
 
     // iterate over all cells
-    for (; y < worldHeight && i < end; ++y) {
+    for (; y < worldHeight && i < end; y = yPlusOne, x = 0) {
       yPlusOne = y + 1;
       yMinusOne = y - 1;
-      for (; x < worldWidth && i < end; ++x) {
+      for (; x < worldWidth && i < end; x = xPlusOne) {
         xPlusOne = x + 1;
         xMinusOne = x - 1;
 
@@ -287,15 +287,15 @@ public class GamePanel extends JPanel {
             (((yMinusOne + this.worldHeight) & this.worldHeightMinusOne) << this.logWorldWidth) + x;
         neighborsIndexes[2] =
             (((yMinusOne + this.worldHeight) & this.worldHeightMinusOne) << this.logWorldWidth)
-                + ((x + 1) & this.worldWidthMinusOne);
+                + ((xPlusOne) & this.worldWidthMinusOne);
         neighborsIndexes[3] = (y << this.logWorldWidth) + ((xMinusOne + this.worldWidth) & this.worldWidthMinusOne);
-        neighborsIndexes[4] = (y << this.logWorldWidth) + ((x + 1) & this.worldWidthMinusOne);
+        neighborsIndexes[4] = (y << this.logWorldWidth) + ((xPlusOne) & this.worldWidthMinusOne);
         neighborsIndexes[5] =
-            (((y + 1) & this.worldHeightMinusOne) << this.logWorldWidth)
+            (((yPlusOne) & this.worldHeightMinusOne) << this.logWorldWidth)
                 + ((xMinusOne + this.worldWidth) & this.worldWidthMinusOne);
-        neighborsIndexes[6] = (((y + 1) & this.worldHeightMinusOne) << this.logWorldWidth) + x;
+        neighborsIndexes[6] = (((yPlusOne) & this.worldHeightMinusOne) << this.logWorldWidth) + x;
         neighborsIndexes[7] =
-            (((y + 1) & this.worldHeightMinusOne) << this.logWorldWidth) + ((x + 1) & this.worldWidthMinusOne);
+            (((yPlusOne) & this.worldHeightMinusOne) << this.logWorldWidth) + ((xPlusOne) & this.worldWidthMinusOne);
 
         // count the living neighbors
         livingNeighbors = 0;
@@ -310,7 +310,6 @@ public class GamePanel extends JPanel {
         // alive1 = alive0 ? (2 or 3 neighbors) : (3 neighbors)
         GamePanel.this.worldDataB.set(i++, livingNeighbors == 3 || alive && livingNeighbors == 2);
       }
-      x = 0;
     }
   }
 
