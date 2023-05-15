@@ -65,6 +65,10 @@ public class GamePanel extends JPanel {
 
   private boolean disposed = false;
 
+  private static int log2(Number x) {
+    return (int) Math.ceil(Math.log(x.doubleValue()) / Math.log(2));
+  }
+
   public GamePanel(final int width, final int height) {
 
     // initialize ui
@@ -98,7 +102,7 @@ public class GamePanel extends JPanel {
     this.worldSize = width * height;
     this.worldHeightMinusOne = this.worldHeight - 1;
     this.worldWidthMinusOne = this.worldWidth - 1;
-    this.logWorldWidth = (int) Math.ceil(Math.log(this.worldWidth) / Math.log(2));
+    this.logWorldWidth = GamePanel.log2(this.worldWidth);
     this.worldDataA = new BitSet(this.worldSize);
     this.worldDataB = new BitSet(this.worldSize);
     final var rand = new Random();
@@ -158,7 +162,11 @@ public class GamePanel extends JPanel {
 
     // how big is the world?
     if (this.worldSize >= 1_048_576) { // 1048576 = 1024 * 1024
-      final var partsCount = Math.max(1, Runtime.getRuntime().availableProcessors() / 2);
+      final var partsCount =
+          Math.max(
+              1,
+              (int) Math.pow(2, (int) GamePanel.log2(Runtime.getRuntime().availableProcessors())));
+
       this.calcTickParts = new Runnable[partsCount];
       final var partSize = this.worldSize / partsCount;
       for (int i = 0; i < partsCount; ++i) {
@@ -260,11 +268,11 @@ public class GamePanel extends JPanel {
   public void calcTick(final int start, final int end) {
     // initialize local variables
     int x = start & this.worldWidthMinusOne;
-    int xPlusOne;
-    int xMinusOne;
+    int xPlusOne = x + 1;
+    int xMinusOne = x - 1;
     int y = start >> this.logWorldWidth;
-    int yPlusOne;
-    int yMinusOne;
+    int yPlusOne = y + 1;
+    int yMinusOne = y - 1;
     int i = start;
     int neighborsIndexes[] = new int[8];
     int livingNeighbors;
@@ -272,13 +280,8 @@ public class GamePanel extends JPanel {
     boolean alive;
 
     // iterate over all cells
-    for (; y < worldHeight && i < end; y = yPlusOne, x = 0) {
-      yPlusOne = y + 1;
-      yMinusOne = y - 1;
-      for (; x < worldWidth && i < end; x = xPlusOne) {
-        xPlusOne = x + 1;
-        xMinusOne = x - 1;
-
+    while (y < worldHeight && i < end) {
+      while (x < worldWidth) {
         // calculate the indexes of the neighbors for a torus world
         neighborsIndexes[0] =
             (((yMinusOne + this.worldHeight) & this.worldHeightMinusOne) << this.logWorldWidth)
@@ -288,14 +291,16 @@ public class GamePanel extends JPanel {
         neighborsIndexes[2] =
             (((yMinusOne + this.worldHeight) & this.worldHeightMinusOne) << this.logWorldWidth)
                 + ((xPlusOne) & this.worldWidthMinusOne);
-        neighborsIndexes[3] = (y << this.logWorldWidth) + ((xMinusOne + this.worldWidth) & this.worldWidthMinusOne);
+        neighborsIndexes[3] =
+            (y << this.logWorldWidth) + ((xMinusOne + this.worldWidth) & this.worldWidthMinusOne);
         neighborsIndexes[4] = (y << this.logWorldWidth) + ((xPlusOne) & this.worldWidthMinusOne);
         neighborsIndexes[5] =
             (((yPlusOne) & this.worldHeightMinusOne) << this.logWorldWidth)
                 + ((xMinusOne + this.worldWidth) & this.worldWidthMinusOne);
         neighborsIndexes[6] = (((yPlusOne) & this.worldHeightMinusOne) << this.logWorldWidth) + x;
         neighborsIndexes[7] =
-            (((yPlusOne) & this.worldHeightMinusOne) << this.logWorldWidth) + ((xPlusOne) & this.worldWidthMinusOne);
+            (((yPlusOne) & this.worldHeightMinusOne) << this.logWorldWidth)
+                + ((xPlusOne) & this.worldWidthMinusOne);
 
         // count the living neighbors
         livingNeighbors = 0;
@@ -309,7 +314,16 @@ public class GamePanel extends JPanel {
 
         // alive1 = alive0 ? (2 or 3 neighbors) : (3 neighbors)
         GamePanel.this.worldDataB.set(i++, livingNeighbors == 3 || alive && livingNeighbors == 2);
+        xMinusOne = x;
+        x = xPlusOne;
+        xPlusOne = x + 1;
       }
+      yMinusOne = y;
+      y = yPlusOne;
+      yPlusOne = y + 1;
+      x = 0;
+      xMinusOne = this.worldWidthMinusOne;
+      xPlusOne = 1;
     }
   }
 
