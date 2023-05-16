@@ -28,52 +28,60 @@ import javax.swing.JSlider;
  * <p>This class encapsulates a Game of Life. Indipendent of the Window management.
  */
 public class GamePanel extends JPanel {
+  private static class Logic {
 
-  private static int log2(final Number x) {
-    return (int) Math.ceil(Math.log(x.doubleValue()) / Math.log(2));
+    private static int log2(final Number x) {
+      return (int) Math.ceil(Math.log(x.doubleValue()) / Math.log(2));
+    }
+
+    private final int worldWidth;
+    private final int worldHeight;
+    private final int worldSize;
+    private final int worldHeightMinusOne;
+    private final int worldWidthMinusOne;
+    private final int logWorldWidth;
+    private final WorldUI worldUI;
+
+    private final TPS tpsLabel;
+
+    /** the executor service to schedule the ticks */
+    private final ScheduledExecutorService sheduler;
+
+    // world data
+    /** primary world data */
+    private BitSet worldDataA;
+
+    /** secondary world data; temporary storage for the next generation */
+    private BitSet worldDataB;
+
+    private boolean paused = true;
+
+    /** the minimum time for one tick in ms */
+    private long minTickTime = 0;
+
+    /**
+     * the tick parts to be executed in parallel.
+     *
+     * <p>Only used for the parallel implementation (for big worlds).
+     */
+    private Runnable[] calcTickParts;
+
+    /**
+     * the futures of the tick parts to be executed in parallel.
+     *
+     * <p>Only used for the parallel implementation (for big worlds).
+     */
+    private CompletableFuture<?>[] calcTickPartsFutures;
+
+    /** lock object to synchronize write access to the world data */
+    private final Object lock = new Object();
+
+    private boolean disposed = false;
   }
 
-  private final int worldWidth;
-  private final int worldHeight;
-  private final int worldSize;
-  private final int worldHeightMinusOne;
-  private final int worldWidthMinusOne;
-  private final int logWorldWidth;
   private final WorldUI worldUI;
 
   private final TPS tpsLabel;
-
-  /** the executor service to schedule the ticks */
-  private final ScheduledExecutorService sheduler;
-
-  // world data
-  /** primary world data */
-  private BitSet worldDataA;
-
-  /** secondary world data; temporary storage for the next generation */
-  private BitSet worldDataB;
-
-  private boolean paused = true;
-
-  /** the minimum time for one tick in ms */
-  private long minTickTime = 0;
-
-  /**
-   * the tick parts to be executed in parallel.
-   *
-   * <p>Only used for the parallel implementation (for big worlds).
-   */
-  private Runnable[] calcTickParts;
-
-  /**
-   * the futures of the tick parts to be executed in parallel.
-   *
-   * <p>Only used for the parallel implementation (for big worlds).
-   */
-  private CompletableFuture<?>[] calcTickPartsFutures;
-
-  /** lock object to synchronize write access to the world data */
-  private final Object lock = new Object();
 
   private boolean disposed = false;
 
