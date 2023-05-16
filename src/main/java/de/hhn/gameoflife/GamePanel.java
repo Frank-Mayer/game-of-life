@@ -10,7 +10,6 @@ import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
@@ -65,6 +64,8 @@ public class GamePanel extends JPanel {
    * <p>Only used for the parallel implementation (for big worlds).
    */
   private Runnable[] calcTickParts;
+
+  private CompletableFuture<?>[] calcTickPartsFutures;
 
   /** lock object to synchronize write access to the world data */
   private final Object lock = new Object();
@@ -179,6 +180,7 @@ public class GamePanel extends JPanel {
               (int) Math.pow(2, (int) GamePanel.log2(Runtime.getRuntime().availableProcessors())));
 
       this.calcTickParts = new Runnable[partsCount];
+      this.calcTickPartsFutures = new CompletableFuture<?>[partsCount];
       final var partSize = this.worldSize / partsCount;
       for (int i = 0; i < partsCount; ++i) {
         final var start = partSize * i;
@@ -475,11 +477,11 @@ public class GamePanel extends JPanel {
       final var start = System.nanoTime();
 
       // calculate next generation
-      final CompletableFuture<Void>[] allFutures =
-          Arrays.stream(this.calcTickParts)
-              .map(x -> CompletableFuture.runAsync(x))
-              .toArray(size -> new CompletableFuture[size]);
-      final CompletableFuture<Void> allDoneFuture = CompletableFuture.allOf(allFutures);
+      final var partsCount = this.calcTickParts.length;
+      for (int i = 0; i < partsCount; ++i) {
+        this.calcTickPartsFutures[i] = CompletableFuture.runAsync(this.calcTickParts[i]);
+      }
+      final CompletableFuture<Void> allDoneFuture = CompletableFuture.allOf(calcTickPartsFutures);
       try {
         allDoneFuture.get();
       } catch (final Exception e) {
