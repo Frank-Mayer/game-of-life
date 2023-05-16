@@ -130,7 +130,8 @@ public class GamePanel extends JPanel {
           public void mousePressed(final MouseEvent e) {
             wasPaused.set(GamePanel.this.paused);
             GamePanel.this.paused = true;
-            relativeBoundingRect.setSize(GamePanel.this.worldUI.getWidth(), GamePanel.this.worldUI.getHeight());
+            relativeBoundingRect.setSize(
+                GamePanel.this.worldUI.getWidth(), GamePanel.this.worldUI.getHeight());
 
             synchronized (GamePanel.this.lock) {
               drawNewState.set(GamePanel.this.togglePoint(e.getPoint()));
