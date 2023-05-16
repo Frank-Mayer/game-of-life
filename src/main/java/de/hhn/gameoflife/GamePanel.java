@@ -371,7 +371,8 @@ public class GamePanel extends JPanel {
       final var g = resized.createGraphics();
       g.drawImage(img, 0, 0, this.worldWidth, this.worldHeight, null);
       // apply filters
-      resized = Dithering.floydSteinberg(Dithering.grayScale(resized));
+      Dithering.grayScale(resized);
+      Dithering.floydSteinberg(resized);
       // write pixels into world data
       for (int y = 0; y < this.worldHeight; ++y) {
         for (int x = 0; x < this.worldWidth; ++x) {
