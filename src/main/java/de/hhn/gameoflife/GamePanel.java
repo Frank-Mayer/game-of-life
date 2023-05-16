@@ -4,6 +4,7 @@ import static de.hhn.gameoflife.State.useState;
 
 import java.awt.Color;
 import java.awt.Point;
+import java.awt.Rectangle;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
@@ -29,6 +30,10 @@ import javax.swing.JSlider;
  */
 public class GamePanel extends JPanel {
 
+  private static int log2(final Number x) {
+    return (int) Math.ceil(Math.log(x.doubleValue()) / Math.log(2));
+  }
+
   private final int worldWidth;
   private final int worldHeight;
   private final int worldSize;
@@ -36,6 +41,7 @@ public class GamePanel extends JPanel {
   private final int worldWidthMinusOne;
   private final int logWorldWidth;
   private final WorldUI worldUI;
+
   private final TPS tpsLabel;
 
   /** the executor service to schedule the ticks */
@@ -64,10 +70,6 @@ public class GamePanel extends JPanel {
   private final Object lock = new Object();
 
   private boolean disposed = false;
-
-  private static int log2(Number x) {
-    return (int) Math.ceil(Math.log(x.doubleValue()) / Math.log(2));
-  }
 
   public GamePanel(final int width, final int height) {
 
@@ -118,6 +120,7 @@ public class GamePanel extends JPanel {
     // add mouse listener to toggle cells
     final var drawNewState = useState(false);
     final var wasPaused = useState(false);
+    final var relativeBoundingRect = new Rectangle(0, 0, 0, 0);
     this.worldUI.addMouseListener(
         new MouseListener() {
           @Override
@@ -127,6 +130,8 @@ public class GamePanel extends JPanel {
           public void mousePressed(final MouseEvent e) {
             wasPaused.set(GamePanel.this.paused);
             GamePanel.this.paused = true;
+            relativeBoundingRect.setSize(GamePanel.this.worldUI.getWidth(), GamePanel.this.worldUI.getHeight());
+
             synchronized (GamePanel.this.lock) {
               drawNewState.set(GamePanel.this.togglePoint(e.getPoint()));
               GamePanel.this.worldUI.draw(GamePanel.this.worldDataA);
@@ -148,6 +153,11 @@ public class GamePanel extends JPanel {
         new MouseMotionListener() {
           @Override
           public void mouseDragged(final MouseEvent e) {
+            // if point is not in the worldUI, do nothing
+            if (!relativeBoundingRect.contains(e.getPoint())) {
+              return;
+            }
+
             synchronized (GamePanel.this.lock) {
               GamePanel.this.togglePoint(e.getPoint(), drawNewState.get());
               GamePanel.this.worldUI.draw(GamePanel.this.worldDataA);
@@ -274,7 +284,7 @@ public class GamePanel extends JPanel {
     int yPlusOne = y + 1;
     int yMinusOne = y - 1;
     int i = start;
-    int neighborsIndexes[] = new int[8];
+    final int neighborsIndexes[] = new int[8];
     int livingNeighbors;
     int neighborIndex;
     boolean alive;
@@ -366,7 +376,7 @@ public class GamePanel extends JPanel {
         this.paused = wasPaused;
         return;
       }
-      BufferedImage resized =
+      final BufferedImage resized =
           new BufferedImage(this.worldWidth, this.worldHeight, BufferedImage.TYPE_INT_RGB);
       final var g = resized.createGraphics();
       g.drawImage(img, 0, 0, this.worldWidth, this.worldHeight, null);
