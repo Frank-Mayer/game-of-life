@@ -65,6 +65,11 @@ public class GamePanel extends JPanel {
    */
   private Runnable[] calcTickParts;
 
+  /**
+   * the futures of the tick parts to be executed in parallel.
+   *
+   * <p>Only used for the parallel implementation (for big worlds).
+   */
   private CompletableFuture<?>[] calcTickPartsFutures;
 
   /** lock object to synchronize write access to the world data */
