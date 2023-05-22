@@ -7,7 +7,7 @@ import java.util.BitSet;
 import javax.swing.JPanel;
 
 /** component to render the world */
-public class WorldUI extends JPanel {
+public class WorldUI extends JPanel implements Drawable<BitSet> {
 
   private final int worldSize;
   private final int logWorldWidth;
