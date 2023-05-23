@@ -8,15 +8,6 @@ import java.util.concurrent.Callable;
 public class DIContainer implements Disposable {
 
   private static final int MAX_RELATION_DISTANCE = Integer.MAX_VALUE / 2;
-  private final Map<Class<?>, Class<?>> unconstructedSingletons = new HashMap<>();
-  private final Map<Class<?>, Object> constructedSingletons = new HashMap<>();
-  private final Set<Class<?>> transients = new HashSet<>();
-  private final Map<Class<?>, Callable<Object>> factories = new HashMap<>();
-  private boolean disposed = false;
-
-  public DIContainer() {
-    this.addSingleton(this);
-  }
 
   private static int getRelationDistance(final Class<?> from, final Class<?> to) {
     if (from == null || to == null) {
@@ -55,6 +46,18 @@ public class DIContainer implements Disposable {
         || clazz == Long.class
         || clazz == Float.class
         || clazz == Double.class;
+  }
+
+  private final Map<Class<?>, Class<?>> unconstructedSingletons = new HashMap<>();
+  private final Map<Class<?>, Object> constructedSingletons = new HashMap<>();
+  private final Set<Class<?>> transients = new HashSet<>();
+
+  private final Map<Class<?>, Callable<Object>> factories = new HashMap<>();
+
+  private boolean disposed = false;
+
+  public DIContainer() {
+    this.addSingleton(this);
   }
 
   public void dispose() {

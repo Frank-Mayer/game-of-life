@@ -6,10 +6,14 @@ import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 
-/**
- * A simple alert dialog.
- */
+/** A simple alert dialog. */
 public class Alert extends JDialog {
+  public static void show(final String title, final String message, final Component c) {
+    final var alert = new Alert(title, message, c);
+    alert.setLocationRelativeTo(c);
+    alert.setVisible(true);
+  }
+
   private Alert(final String title, final String message, final Component c) {
     super();
     this.setLayout(new BorderLayout());
@@ -26,11 +30,5 @@ public class Alert extends JDialog {
         BorderLayout.SOUTH);
 
     this.pack();
-  }
-
-  public static void show(final String title, final String message, final Component c) {
-    final var alert = new Alert(title, message, c);
-    alert.setLocationRelativeTo(c);
-    alert.setVisible(true);
   }
 }

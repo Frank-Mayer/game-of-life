@@ -238,6 +238,10 @@ public class World {
     this.paused = wasPaused;
   }
 
+  public BitSet getWorldDataB() {
+    return this.worldDataB;
+  }
+
   /** Trigger tick (next generation) synchronously */
   private void tickSync() {
     // check if the game is running
@@ -328,9 +332,5 @@ public class World {
 
     // pass the new generation to the UI
     this.ui.draw(this.worldDataA);
-  }
-
-  public BitSet getWorldDataB() {
-    return this.worldDataB;
   }
 }

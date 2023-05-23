@@ -21,7 +21,9 @@ public class WorldUI extends JPanel implements Drawable<BitSet> {
     this.logWorldWidth = Utils.log2(settings.worldWidth());
     this.worldWidthMinusOne = settings.worldWidth() - 1;
     this.worldSize = settings.worldWidth() * settings.worldHeight();
-    this.buffer = new BufferedImage(settings.worldWidth(), settings.worldHeight(), BufferedImage.TYPE_INT_RGB);
+    this.buffer =
+        new BufferedImage(
+            settings.worldWidth(), settings.worldHeight(), BufferedImage.TYPE_INT_RGB);
   }
 
   public Color getAliveColor() {
