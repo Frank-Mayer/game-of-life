@@ -207,7 +207,9 @@ public class World {
   }
 
   public void setPaused(final boolean paused) {
-    this.paused = paused;
+    synchronized (this.lock) {
+      this.paused = paused;
+    }
   }
 
   public void dispose() {}

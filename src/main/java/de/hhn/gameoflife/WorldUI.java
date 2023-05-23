@@ -17,13 +17,11 @@ public class WorldUI extends JPanel implements Drawable<BitSet> {
   private int colorDead = 0x000000;
   private BitSet worldData;
 
-  public WorldUI(final BitSet worldData, final int worldWidth, final int worldHeight) {
-    this.worldData = (BitSet) worldData.clone();
-    this.logWorldWidth = (int) (Math.log(worldWidth) / Math.log(2));
-    this.worldWidthMinusOne = worldWidth - 1;
-    this.worldSize = worldWidth * worldHeight;
-    this.buffer = new BufferedImage(worldWidth, worldHeight, BufferedImage.TYPE_INT_RGB);
-    this.draw();
+  public WorldUI(final Settings settings) {
+    this.logWorldWidth = Utils.log2(settings.worldWidth());
+    this.worldWidthMinusOne = settings.worldWidth() - 1;
+    this.worldSize = settings.worldWidth() * settings.worldHeight();
+    this.buffer = new BufferedImage(settings.worldWidth(), settings.worldHeight(), BufferedImage.TYPE_INT_RGB);
   }
 
   public Color getAliveColor() {
@@ -58,7 +56,7 @@ public class WorldUI extends JPanel implements Drawable<BitSet> {
   public void dispose() {
     this.buffer.flush();
     this.buffer.getGraphics().dispose();
-    this.worldData = null;
+    this.worldData = new BitSet(0);
   }
 
   /** draw the given worlds state */
@@ -78,6 +76,10 @@ public class WorldUI extends JPanel implements Drawable<BitSet> {
 
   /** draw the current worlds state using the given graphics object */
   public void draw(final Graphics g) {
+    if (this.worldData == null) {
+      return;
+    }
+
     int i;
     int x;
     int y;

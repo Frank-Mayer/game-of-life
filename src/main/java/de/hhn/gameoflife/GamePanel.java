@@ -43,6 +43,9 @@ public class GamePanel extends JPanel implements Disposable {
     this.diContainer.addSingleton(WorldUI.class);
     this.diContainer.addSingleton(TPS.class);
 
+    this.worldWidth = width;
+    this.worldHeight = height;
+
     // initialize world
     this.world = this.diContainer.get(World.class);
 
@@ -164,6 +167,7 @@ public class GamePanel extends JPanel implements Disposable {
     this.disposed = true;
     this.worldUI.dispose();
     this.world.dispose();
+    this.diContainer.dispose();
   }
 
   public Color getAliveColor() {
