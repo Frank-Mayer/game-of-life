@@ -29,6 +29,8 @@ public class TestWindow extends JInternalFrame implements Disposable {
             // do nothing
           }
         });
+    diContainer.addSingleton(TPS.class);
+    diContainer.addSingleton(Lock.class);
     this.world = diContainer.get(World.class);
 
     {

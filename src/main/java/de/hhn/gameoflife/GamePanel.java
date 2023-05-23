@@ -24,27 +24,24 @@ import javax.swing.JSlider;
 public class GamePanel extends JPanel implements Disposable {
 
   private final World world;
-
   private final WorldUI worldUI;
-
   private final TPS tpsLabel;
-
   private int worldWidth;
-
   private int worldHeight;
-
   private final DIContainer diContainer = new DIContainer();
-
   private boolean disposed = false;
+  private final Lock lock;
 
   public GamePanel(final int width, final int height) {
     this.diContainer.addSingleton(new Settings(width, height));
     this.diContainer.addSingleton(World.class);
     this.diContainer.addSingleton(WorldUI.class);
     this.diContainer.addSingleton(TPS.class);
+    this.diContainer.addSingleton(Lock.class);
 
     this.worldWidth = width;
     this.worldHeight = height;
+    this.lock = diContainer.get(Lock.class);
 
     // initialize world
     this.world = this.diContainer.get(World.class);
@@ -54,7 +51,6 @@ public class GamePanel extends JPanel implements Disposable {
     // tick time label
     this.tpsLabel = this.diContainer.get(TPS.class);
     this.add(this.tpsLabel);
-    this.diContainer.addSingleton(this.tpsLabel);
     // min tick time slider (delay)
     final var minTickTimeLabel =
         new JLabel(String.format("Min Tick Time (%sms)", this.world.getMinTickTime()));
@@ -80,7 +76,6 @@ public class GamePanel extends JPanel implements Disposable {
     // world ui to display the world
     this.worldUI = this.diContainer.get(WorldUI.class);
     this.add(this.worldUI);
-    this.diContainer.addSingleton(this.worldUI);
     // add mouse listener to toggle cells
     final var drawNewState = useState(false);
     final var wasPaused = useState(false);
@@ -92,13 +87,15 @@ public class GamePanel extends JPanel implements Disposable {
 
           @Override
           public void mousePressed(final MouseEvent e) {
-            wasPaused.set(GamePanel.this.world.getPaused());
-            GamePanel.this.world.setPaused(true);
-            relativeBoundingRect.setSize(
-                GamePanel.this.worldUI.getWidth(), GamePanel.this.worldUI.getHeight());
+            synchronized (GamePanel.this.lock) {
+              wasPaused.set(GamePanel.this.world.getPaused());
+              GamePanel.this.world.setPaused(true);
+              relativeBoundingRect.setSize(
+                  GamePanel.this.worldUI.getWidth(), GamePanel.this.worldUI.getHeight());
 
-            drawNewState.set(GamePanel.this.togglePoint(e.getPoint()));
-            GamePanel.this.worldUI.draw(GamePanel.this.world.getWorldData());
+              drawNewState.set(GamePanel.this.togglePoint(e.getPoint()));
+              GamePanel.this.worldUI.draw(GamePanel.this.world.getWorldData());
+            }
           }
 
           @Override

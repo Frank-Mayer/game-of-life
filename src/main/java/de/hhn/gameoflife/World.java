@@ -24,12 +24,17 @@ public class World {
   private final ScheduledExecutorService sheduler = Executors.newSingleThreadScheduledExecutor();
   private Runnable[] calcTickParts;
   private CompletableFuture<?>[] calcTickPartsFutures;
-  private final Object lock = new Object();
+  private final Lock lock;
 
   public World(
-      final Settings settings, final Drawable<BitSet> ui, final Random rand, final TPS tps) {
+      final Settings settings,
+      final Drawable<BitSet> ui,
+      final Random rand,
+      final TPS tps,
+      final Lock lock) {
     this.ui = ui;
     this.tps = tps;
+    this.lock = lock;
     this.worldWidth = settings.worldWidth();
     this.worldHeight = settings.worldHeight();
     this.worldSize = this.worldWidth * this.worldHeight;
@@ -103,64 +108,67 @@ public class World {
 
   /** calculate next generation */
   public void calcTick(final int start, final int end) {
-    // initialize local variables
-    int x = start & this.worldWidthMinusOne;
-    int xPlusOne = x + 1;
-    int xMinusOne = x - 1;
-    int y = start >> this.logWorldWidth;
-    int yPlusOne = y + 1;
-    int yMinusOne = y - 1;
-    int i = start;
-    final int neighborsIndexes[] = new int[8];
-    int livingNeighbors;
-    int neighborIndex;
-    boolean alive;
+    synchronized (this.lock) {
+      // initialize local variables
+      int x = start & this.worldWidthMinusOne;
+      int xPlusOne = x + 1;
+      int xMinusOne = x - 1;
+      int y = start >> this.logWorldWidth;
+      int yPlusOne = y + 1;
+      int yMinusOne = y - 1;
+      int i = start;
+      final int neighborsIndexes[] = new int[8];
+      int livingNeighbors;
+      int neighborIndex;
+      boolean alive;
 
-    // iterate over all cells
-    while (y < worldHeight && i < end) {
-      while (x < worldWidth) {
-        // calculate the indexes of the neighbors for a torus world
-        neighborsIndexes[0] =
-            (((yMinusOne + this.worldHeight) & this.worldHeightMinusOne) << this.logWorldWidth)
-                + ((xMinusOne + this.worldWidth) & this.worldWidthMinusOne);
-        neighborsIndexes[1] =
-            (((yMinusOne + this.worldHeight) & this.worldHeightMinusOne) << this.logWorldWidth) + x;
-        neighborsIndexes[2] =
-            (((yMinusOne + this.worldHeight) & this.worldHeightMinusOne) << this.logWorldWidth)
-                + ((xPlusOne) & this.worldWidthMinusOne);
-        neighborsIndexes[3] =
-            (y << this.logWorldWidth) + ((xMinusOne + this.worldWidth) & this.worldWidthMinusOne);
-        neighborsIndexes[4] = (y << this.logWorldWidth) + ((xPlusOne) & this.worldWidthMinusOne);
-        neighborsIndexes[5] =
-            (((yPlusOne) & this.worldHeightMinusOne) << this.logWorldWidth)
-                + ((xMinusOne + this.worldWidth) & this.worldWidthMinusOne);
-        neighborsIndexes[6] = (((yPlusOne) & this.worldHeightMinusOne) << this.logWorldWidth) + x;
-        neighborsIndexes[7] =
-            (((yPlusOne) & this.worldHeightMinusOne) << this.logWorldWidth)
-                + ((xPlusOne) & this.worldWidthMinusOne);
+      // iterate over all cells
+      while (y < worldHeight && i < end) {
+        while (x < worldWidth) {
+          // calculate the indexes of the neighbors for a torus world
+          neighborsIndexes[0] =
+              (((yMinusOne + this.worldHeight) & this.worldHeightMinusOne) << this.logWorldWidth)
+                  + ((xMinusOne + this.worldWidth) & this.worldWidthMinusOne);
+          neighborsIndexes[1] =
+              (((yMinusOne + this.worldHeight) & this.worldHeightMinusOne) << this.logWorldWidth)
+                  + x;
+          neighborsIndexes[2] =
+              (((yMinusOne + this.worldHeight) & this.worldHeightMinusOne) << this.logWorldWidth)
+                  + ((xPlusOne) & this.worldWidthMinusOne);
+          neighborsIndexes[3] =
+              (y << this.logWorldWidth) + ((xMinusOne + this.worldWidth) & this.worldWidthMinusOne);
+          neighborsIndexes[4] = (y << this.logWorldWidth) + ((xPlusOne) & this.worldWidthMinusOne);
+          neighborsIndexes[5] =
+              (((yPlusOne) & this.worldHeightMinusOne) << this.logWorldWidth)
+                  + ((xMinusOne + this.worldWidth) & this.worldWidthMinusOne);
+          neighborsIndexes[6] = (((yPlusOne) & this.worldHeightMinusOne) << this.logWorldWidth) + x;
+          neighborsIndexes[7] =
+              (((yPlusOne) & this.worldHeightMinusOne) << this.logWorldWidth)
+                  + ((xPlusOne) & this.worldWidthMinusOne);
 
-        // count the living neighbors
-        livingNeighbors = 0;
-        alive = this.worldDataA.get(i);
-        for (int j = 0; j < 8; ++j) {
-          neighborIndex = neighborsIndexes[j];
-          if (this.worldDataA.get(neighborIndex)) {
-            ++livingNeighbors;
+          // count the living neighbors
+          livingNeighbors = 0;
+          alive = this.worldDataA.get(i);
+          for (int j = 0; j < 8; ++j) {
+            neighborIndex = neighborsIndexes[j];
+            if (this.worldDataA.get(neighborIndex)) {
+              ++livingNeighbors;
+            }
           }
-        }
 
-        // alive1 = alive0 ? (2 or 3 neighbors) : (3 neighbors)
-        this.worldDataB.set(i++, livingNeighbors == 3 || alive && livingNeighbors == 2);
-        xMinusOne = x;
-        x = xPlusOne;
-        xPlusOne = x + 1;
+          // alive1 = alive0 ? (2 or 3 neighbors) : (3 neighbors)
+          this.worldDataB.set(i++, livingNeighbors == 3 || alive && livingNeighbors == 2);
+          xMinusOne = x;
+          x = xPlusOne;
+          xPlusOne = x + 1;
+        }
+        yMinusOne = y;
+        y = yPlusOne;
+        yPlusOne = y + 1;
+        x = 0;
+        xMinusOne = this.worldWidthMinusOne;
+        xPlusOne = 1;
       }
-      yMinusOne = y;
-      y = yPlusOne;
-      yPlusOne = y + 1;
-      x = 0;
-      xMinusOne = this.worldWidthMinusOne;
-      xPlusOne = 1;
     }
   }
 
@@ -186,6 +194,8 @@ public class World {
     synchronized (this.lock) {
       this.worldDataA.clear();
       this.worldDataA.or(in);
+      this.worldDataB.clear();
+      this.worldDataB.or(in);
       this.ui.draw(this.worldDataA);
     }
     this.paused = wasPaused;
@@ -208,9 +218,7 @@ public class World {
   }
 
   public void setPaused(final boolean paused) {
-    synchronized (this.lock) {
-      this.paused = paused;
-    }
+    this.paused = paused;
   }
 
   public void dispose() {}
@@ -237,40 +245,38 @@ public class World {
       return;
     }
 
-    synchronized (this.lock) {
-      // save start time
-      final var start = System.nanoTime();
+    // save start time
+    final var start = System.nanoTime();
 
-      // calculate next generation
-      calcTick(0, this.worldSize);
+    // calculate next generation
+    calcTick(0, this.worldSize);
 
-      // calculate time spend for this tick
-      final var tickTime = System.nanoTime() - start;
-      this.tps.add(tickTime);
+    // calculate time spend for this tick
+    final var tickTime = System.nanoTime() - start;
+    this.tps.add(tickTime);
 
-      // sleep if the tick was too fast
-      final var sleepTime = this.minTickTime - tickTime / 1000000L;
-      if (sleepTime > 0L) {
-        try {
-          Thread.sleep(sleepTime);
-        } catch (final InterruptedException e) {
-          // swap the world data a and b; a stays primary
-          final var tmp = this.worldDataA;
-          this.worldDataA = this.worldDataB;
-          this.worldDataB = tmp;
+    // sleep if the tick was too fast
+    final var sleepTime = this.minTickTime - tickTime / 1000000L;
+    if (sleepTime > 0L) {
+      try {
+        Thread.sleep(sleepTime);
+      } catch (final InterruptedException e) {
+        // swap the world data a and b; a stays primary
+        final var tmp = this.worldDataA;
+        this.worldDataA = this.worldDataB;
+        this.worldDataB = tmp;
 
-          return;
-        }
+        return;
       }
-
-      // swap the world data a and b; a stays primary
-      final var tmp = this.worldDataA;
-      this.worldDataA = this.worldDataB;
-      this.worldDataB = tmp;
-
-      // pass the new generation to the UI
-      this.ui.draw(this.worldDataA);
     }
+
+    // swap the world data a and b; a stays primary
+    final var tmp = this.worldDataA;
+    this.worldDataA = this.worldDataB;
+    this.worldDataB = tmp;
+
+    // pass the new generation to the UI
+    this.ui.draw(this.worldDataA);
   }
 
   /** Trigger tick (next generation) asynchronously */
@@ -280,50 +286,48 @@ public class World {
       return;
     }
 
-    synchronized (this.lock) {
-      // save start time
-      final var start = System.nanoTime();
+    // save start time
+    final var start = System.nanoTime();
 
-      // calculate next generation
-      final var partsCount = this.calcTickParts.length;
-      for (int i = 0; i < partsCount; ++i) {
-        this.calcTickPartsFutures[i] = CompletableFuture.runAsync(this.calcTickParts[i]);
-      }
-      final CompletableFuture<Void> allDoneFuture = CompletableFuture.allOf(calcTickPartsFutures);
+    // calculate next generation
+    final var partsCount = this.calcTickParts.length;
+    for (int i = 0; i < partsCount; ++i) {
+      this.calcTickPartsFutures[i] = CompletableFuture.runAsync(this.calcTickParts[i]);
+    }
+    final CompletableFuture<Void> allDoneFuture = CompletableFuture.allOf(calcTickPartsFutures);
+    try {
+      allDoneFuture.get();
+    } catch (final Exception e) {
+      // ignore
+      return;
+    }
+
+    // calculate time spend for this tick
+    final var tickTime = System.nanoTime() - start;
+    this.tps.add(tickTime);
+
+    // sleep if the tick was too fast
+    final var sleepTime = this.minTickTime - tickTime / 1000000L;
+    if (sleepTime > 0L) {
       try {
-        allDoneFuture.get();
-      } catch (final Exception e) {
-        // ignore
+        Thread.sleep(sleepTime);
+      } catch (final InterruptedException e) {
+        // swap the world data a and b; a stays primary
+        final var tmp = this.worldDataA;
+        this.worldDataA = this.worldDataB;
+        this.worldDataB = tmp;
+
         return;
       }
-
-      // calculate time spend for this tick
-      final var tickTime = System.nanoTime() - start;
-      this.tps.add(tickTime);
-
-      // sleep if the tick was too fast
-      final var sleepTime = this.minTickTime - tickTime / 1000000L;
-      if (sleepTime > 0L) {
-        try {
-          Thread.sleep(sleepTime);
-        } catch (final InterruptedException e) {
-          // swap the world data a and b; a stays primary
-          final var tmp = this.worldDataA;
-          this.worldDataA = this.worldDataB;
-          this.worldDataB = tmp;
-
-          return;
-        }
-      }
-
-      // swap the world data a and b; a stays primary
-      final var tmp = this.worldDataA;
-      this.worldDataA = this.worldDataB;
-      this.worldDataB = tmp;
-
-      // pass the new generation to the UI
-      this.ui.draw(this.worldDataA);
     }
+
+    // swap the world data a and b; a stays primary
+    final var tmp = this.worldDataA;
+    this.worldDataA = this.worldDataB;
+    this.worldDataB = tmp;
+
+    // pass the new generation to the UI
+    this.ui.draw(this.worldDataA);
   }
 
   public BitSet getWorldDataB() {
