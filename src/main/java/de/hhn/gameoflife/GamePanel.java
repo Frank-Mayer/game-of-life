@@ -152,8 +152,8 @@ public class GamePanel extends JPanel implements Disposable {
    * @return the new state of the cell
    */
   public boolean togglePoint(final Point point) {
-    final var cellWidth = GamePanel.this.worldUI.getWidth() / (int) this.worldWidth;
-    final var cellHeight = GamePanel.this.worldUI.getHeight() / (int) this.worldHeight;
+    final var cellWidth = (double) GamePanel.this.worldUI.getWidth() / (double) this.worldWidth;
+    final var cellHeight = (double) GamePanel.this.worldUI.getHeight() / (double) this.worldHeight;
     final var x = (int) (point.x / cellWidth);
     final var y = (int) (point.y / cellHeight);
     return this.world.togglePoint(x, y);
