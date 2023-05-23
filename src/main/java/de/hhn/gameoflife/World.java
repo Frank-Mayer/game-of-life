@@ -169,15 +169,25 @@ public class World {
 
   /** clear the world */
   public void clear() {
-    this.worldDataA.clear();
-    this.worldDataB.clear();
-    this.ui.draw(this.worldDataA);
+    final var wasPaused = this.paused;
+    this.paused = true;
+    synchronized (this.lock) {
+      this.worldDataA.clear();
+      this.worldDataB.clear();
+      this.ui.draw(this.worldDataA);
+    }
+    this.paused = wasPaused;
   }
 
   public void overwriteWorldData(final BitSet in) {
-    this.worldDataA.clear();
-    this.worldDataA.or(in);
-    this.ui.draw(this.worldDataA);
+    final var wasPaused = this.paused;
+    this.paused = true;
+    synchronized (this.lock) {
+      this.worldDataA.clear();
+      this.worldDataA.or(in);
+      this.ui.draw(this.worldDataA);
+    }
+    this.paused = wasPaused;
   }
 
   public void setMinTickTime(final int value) {
@@ -311,5 +321,9 @@ public class World {
       // pass the new generation to the UI
       this.ui.draw(this.worldDataA);
     }
+  }
+
+  public BitSet getWorldDataB() {
+    return this.worldDataB;
   }
 }
