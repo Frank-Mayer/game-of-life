@@ -7,12 +7,24 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.stream.Stream;
 
-public class DIContainer {
+public class DIContainer implements Disposable {
   private final Map<Class<?>, Class<?>> unconstructedSingletons = new HashMap<>();
   private final Map<Class<?>, Object> constructedSingletons = new HashMap<>();
   private final Set<Class<?>> transients = new HashSet<>();
   private final Map<Class<?>, Callable<Object>> factories = new HashMap<>();
+
+  public void dispose() {
+    this.constructedSingletons.values()
+      .stream()
+      .filter(x -> x instanceof Disposable)
+      .forEach(x -> ((Disposable) x).dispose());
+    this.unconstructedSingletons.clear();
+    this.constructedSingletons.clear();
+    this.transients.clear();
+    this.factories.clear();
+  }
 
   public DIContainer() {
     this.addSingleton(this);
@@ -68,6 +80,9 @@ public class DIContainer {
     this.constructedSingletons.remove(clazz);
     this.transients.remove(clazz);
     this.factories.remove(clazz);
+    DIContainer.getAncesstors(clazz)
+        .filter(this::classIsUnregistered)
+        .forEach(c -> this.unconstructedSingletons.put(c, clazz));
   }
 
   public void addSingleton(final Class<?> clazz, final Class<?> as) {
@@ -80,6 +95,17 @@ public class DIContainer {
     this.constructedSingletons.remove(as);
     this.transients.remove(clazz);
     this.factories.remove(clazz);
+    DIContainer.getAncesstors(as)
+        .filter(this::classIsUnregistered)
+        .forEach(c -> this.unconstructedSingletons.put(c, clazz));
+  }
+
+  public void addSingleton(final Object instance) {
+    final var clazz = instance.getClass();
+    this.addSingleton(instance, clazz);
+    DIContainer.getAncesstors(clazz)
+        .filter(this::classIsUnregistered)
+        .forEach(c -> this.constructedSingletons.put(c, instance));
   }
 
   public void addSingleton(final Object instance, final Class<?> clazz) {
@@ -87,6 +113,9 @@ public class DIContainer {
     this.unconstructedSingletons.remove(clazz);
     this.transients.remove(clazz);
     this.factories.remove(clazz);
+    DIContainer.getAncesstors(clazz)
+        .filter(this::classIsUnregistered)
+        .forEach(c -> this.constructedSingletons.put(c, instance));
   }
 
   public void addTransient(final Class<?> clazz) {
@@ -94,6 +123,9 @@ public class DIContainer {
     this.unconstructedSingletons.remove(clazz);
     this.constructedSingletons.remove(clazz);
     this.factories.remove(clazz);
+    DIContainer.getAncesstors(clazz)
+        .filter(this::classIsUnregistered)
+        .forEach(c -> this.transients.add(c));
   }
 
   public void addFactory(final Class<?> clazz, final Callable<Object> factory) {
@@ -101,10 +133,25 @@ public class DIContainer {
     this.unconstructedSingletons.remove(clazz);
     this.constructedSingletons.remove(clazz);
     this.transients.remove(clazz);
+    DIContainer.getAncesstors(clazz)
+        .filter(this::classIsUnregistered)
+        .forEach(c -> this.factories.put(c, factory));
   }
 
-  public void addSingleton(final Object instance) {
-    this.addSingleton(instance, instance.getClass());
+  private static Stream<Class<?>> getAncesstors(final Class<?> clazz) {
+    // stream of all superclasses and interfaces
+    return Stream.concat(
+            Stream.of(clazz.getInterfaces()),
+            Stream.of(clazz.getSuperclass()).filter(c -> c != null))
+        .filter(c -> c != Object.class && c != Class.class && c != null)
+        .flatMap(DIContainer::getAncesstors);
+  }
+
+  private boolean classIsUnregistered(final Class<?> clazz) {
+    return (!this.unconstructedSingletons.containsKey(clazz))
+        && (!this.constructedSingletons.containsKey(clazz))
+        && (!this.transients.contains(clazz))
+        && (!this.factories.containsKey(clazz));
   }
 
   private Object construct(final Class<?> clazz) {

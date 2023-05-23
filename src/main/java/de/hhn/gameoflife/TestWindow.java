@@ -7,17 +7,30 @@ import javax.swing.JLabel;
 import javax.swing.SwingUtilities;
 
 /** A window to test the games core logic. */
-public class TestWindow extends JInternalFrame {
+public class TestWindow extends JInternalFrame implements Disposable {
 
   private final World world;
   private final Stack<BitSet> testsIn = new Stack<>();
   private final Stack<Boolean> testsOut = new Stack<>();
   private final int testOutIndex = 5;
+  private final DIContainer diContainer = new DIContainer();
+  private boolean disposed = false;
 
-  public TestWindow(final World world) {
+  public TestWindow() {
     super("Test", true, true, true, true);
 
-    this.world = world;
+    final var diContainer = new DIContainer();
+    diContainer.addSingleton(this);
+    diContainer.addSingleton(new Settings(4, 4));
+    diContainer.addSingleton(World.class);
+    diContainer.addSingleton(
+        new Drawable<BitSet>() {
+          public void draw(final BitSet ignore) {
+            // do nothing
+          }
+        });
+    this.world = diContainer.get(World.class);
+
     {
       // input
       final var in = new BitSet(16);
@@ -81,6 +94,17 @@ public class TestWindow extends JInternalFrame {
     this.show();
 
     SwingUtilities.invokeLater(this::runTests);
+  }
+
+  @Override
+  public void dispose() {
+    if (this.disposed) {
+      return;
+    }
+    this.disposed = true;
+    this.world.dispose();
+    this.diContainer.dispose();
+    super.dispose();
   }
 
   private void runTests() {

@@ -21,7 +21,7 @@ import javax.swing.JSlider;
  *
  * <p>This class encapsulates a Game of Life. Indipendent of the Window management.
  */
-public class GamePanel extends JPanel {
+public class GamePanel extends JPanel implements Disposable {
 
   private final World world;
 
@@ -34,6 +34,8 @@ public class GamePanel extends JPanel {
   private int worldHeight;
 
   private final DIContainer diContainer = new DIContainer();
+
+  private boolean disposed = false;
 
   public GamePanel(final int width, final int height) {
     this.diContainer.addSingleton(new Settings(width, height));
@@ -156,6 +158,10 @@ public class GamePanel extends JPanel {
 
   /** free resources */
   public void dispose() {
+    if (this.disposed) {
+      return;
+    }
+    this.disposed = true;
     this.worldUI.dispose();
     this.world.dispose();
   }
@@ -225,12 +231,20 @@ public class GamePanel extends JPanel {
     final var dotIndex = fileName.lastIndexOf('.');
     final var ext =
         dotIndex == -1 || dotIndex == fileName.length() - 1
-            ? "jpeg"
+            ? "png"
             : fileName.substring(dotIndex + 1);
     try {
       ImageIO.write(img, ext, imageFile);
     } catch (final Exception e) {
       Alert.show("Error", e.getMessage(), this.worldUI);
     }
+  }
+
+  public void clear() {
+    this.world.clear();
+  }
+
+  public boolean togglePaused() {
+    return this.world.togglePaused();
   }
 }
