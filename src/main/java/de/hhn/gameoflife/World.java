@@ -44,6 +44,7 @@ public class World {
       this.worldDataA.set(i, alive);
       this.worldDataB.set(i, alive);
     }
+    this.ui.draw(this.worldDataA);
 
     // how big is the world?
     if (this.worldSize >= 1_048_576) { // 1048576 = 1024 * 1024
