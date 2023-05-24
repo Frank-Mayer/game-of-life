@@ -219,7 +219,7 @@ public class DIContainer implements Disposable {
   private Object construct(final Class<?> clazz) {
     final var constr =
         Arrays.stream(clazz.getConstructors())
-            .sorted((a, b) -> Integer.compare(b.getParameterCount(), a.getParameterCount()))
+            .sorted((a, b) -> Integer.compare(a.getParameterCount(), b.getParameterCount()))
             .toArray(Constructor<?>[]::new);
 
     constructors_loop:
