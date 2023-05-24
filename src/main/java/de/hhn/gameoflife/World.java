@@ -25,6 +25,7 @@ public class World {
   private Runnable[] calcTickParts;
   private CompletableFuture<?>[] calcTickPartsFutures;
   private final Lock lock;
+private boolean disposed;
 
   public World(
       final Settings settings,
@@ -221,7 +222,22 @@ public class World {
     this.paused = paused;
   }
 
-  public void dispose() {}
+  public void dispose() {
+    if (this.disposed) {
+      return;
+    }
+    this.disposed = true;
+    this.sheduler.shutdownNow();
+    try {
+      this.sheduler.awaitTermination(5, TimeUnit.SECONDS);
+    } catch (final InterruptedException e) {
+      System.err.println("Interrupted while waiting for sheduler to terminate");
+    }
+    finally {
+      this.worldDataA = null;
+      this.worldDataB = null;
+    }
+  }
 
   public void setDataFrom(final BufferedImage resized) {
     final var wasPaused = this.paused;
