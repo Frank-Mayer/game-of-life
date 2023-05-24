@@ -6,20 +6,33 @@ import javax.swing.JInternalFrame;
 import javax.swing.JLabel;
 import javax.swing.SwingUtilities;
 
-/**
- * A window to test the games core logic.
- */
-public class TestWindow extends JInternalFrame {
+/** A window to test the games core logic. */
+public class TestWindow extends JInternalFrame implements Disposable {
 
-  private final GamePanel gamePanel;
+  private final World world;
   private final Stack<BitSet> testsIn = new Stack<>();
   private final Stack<Boolean> testsOut = new Stack<>();
   private final int testOutIndex = 5;
+  private final DIContainer diContainer = new DIContainer();
+  private boolean disposed = false;
 
   public TestWindow() {
     super("Test", true, true, true, true);
 
-    this.gamePanel = new GamePanel(4, 4);
+    final var diContainer = new DIContainer();
+    diContainer.addSingleton(this);
+    diContainer.addSingleton(new Settings(4, 4));
+    diContainer.addSingleton(World.class);
+    diContainer.addSingleton(
+        new Drawable<BitSet>() {
+          public void draw(final BitSet ignore) {
+            // do nothing
+          }
+        });
+    diContainer.addSingleton(TPS.class);
+    diContainer.addSingleton(Lock.class);
+    this.world = diContainer.get(World.class);
+
     {
       // input
       final var in = new BitSet(16);
@@ -79,11 +92,21 @@ public class TestWindow extends JInternalFrame {
     // expected output
     this.testsOut.push(false);
 
-    this.setContentPane(this.gamePanel);
     this.pack();
     this.show();
 
     SwingUtilities.invokeLater(this::runTests);
+  }
+
+  @Override
+  public void dispose() {
+    if (this.disposed) {
+      return;
+    }
+    this.disposed = true;
+    this.world.dispose();
+    this.diContainer.dispose();
+    super.dispose();
   }
 
   private void runTests() {
@@ -93,9 +116,9 @@ public class TestWindow extends JInternalFrame {
     while (!this.testsIn.isEmpty() && !this.testsOut.isEmpty()) {
       final var in = this.testsIn.pop();
       final var expectedOut = this.testsOut.pop();
-      this.gamePanel.overwriteWorldData(in);
-      this.gamePanel.calcTick();
-      final var realOut = this.gamePanel.getWorldDataB().get(this.testOutIndex);
+      this.world.overwriteWorldData(in);
+      this.world.calcTick();
+      final var realOut = this.world.getWorldDataB().get(this.testOutIndex);
       errTxt.append(
           String.format(
               "<p><b>Test %d: %s</b></p>", i, realOut == expectedOut ? "PASSED" : "FAILED"));
@@ -104,15 +127,14 @@ public class TestWindow extends JInternalFrame {
       errTxt.append(
           String.format(
               "<p>Result: %s</p>",
-              realOut != expectedOut
-                  ? this.displayBitSet(this.gamePanel.getWorldDataB())
-                  : realOut));
+              realOut != expectedOut ? this.displayBitSet(this.world.getWorldDataB()) : realOut));
       ++i;
     }
     errTxt.append("</html>");
     final var errLabel = new JLabel();
     this.setContentPane(errLabel);
-    this.gamePanel.dispose();
+    this.world.dispose();
+    this.diContainer.dispose();
     errLabel.setText(errTxt.toString());
     this.pack();
   }
