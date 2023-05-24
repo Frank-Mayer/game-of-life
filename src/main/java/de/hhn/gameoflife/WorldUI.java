@@ -16,7 +16,7 @@ public class WorldUI extends JPanel implements Drawable<BitSet> {
   private int colorAlive = 0xFFFFFF;
   private int colorDead = 0x000000;
   private BitSet worldData;
-private boolean disposed;
+  private boolean disposed;
 
   public WorldUI(final Settings settings) {
     this.logWorldWidth = Utils.log2(settings.worldWidth());
@@ -57,7 +57,7 @@ private boolean disposed;
 
   /** free resources */
   public void dispose() {
-    if(this.disposed) {
+    if (this.disposed) {
       return;
     }
     this.disposed = true;

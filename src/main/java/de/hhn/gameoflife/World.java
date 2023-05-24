@@ -25,7 +25,7 @@ public class World {
   private Runnable[] calcTickParts;
   private CompletableFuture<?>[] calcTickPartsFutures;
   private final Lock lock;
-private boolean disposed;
+  private boolean disposed;
 
   public World(
       final Settings settings,
@@ -232,8 +232,7 @@ private boolean disposed;
       this.sheduler.awaitTermination(5, TimeUnit.SECONDS);
     } catch (final InterruptedException e) {
       System.err.println("Interrupted while waiting for sheduler to terminate");
-    }
-    finally {
+    } finally {
       this.worldDataA = null;
       this.worldDataB = null;
     }
