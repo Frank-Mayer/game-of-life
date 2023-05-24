@@ -134,6 +134,7 @@ public class TestWindow extends JInternalFrame implements Disposable {
     final var errLabel = new JLabel();
     this.setContentPane(errLabel);
     this.world.dispose();
+    this.diContainer.dispose();
     errLabel.setText(errTxt.toString());
     this.pack();
   }
