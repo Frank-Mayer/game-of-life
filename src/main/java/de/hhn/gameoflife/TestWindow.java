@@ -113,6 +113,16 @@ public class TestWindow extends JInternalFrame implements Disposable {
     final var errTxt = new StringBuilder();
     var i = 0;
     errTxt.append("<html>");
+    errTxt.append(
+        String.format(
+            "<p>JVM: %s %s</p>",
+            System.getProperty("java.vm.name"), System.getProperty("java.vm.version")));
+    errTxt.append(String.format("Vendor: %s</p>", System.getProperty("java.vendor")));
+    errTxt.append(
+        String.format(
+            "<p>OS: %s %s</p>", System.getProperty("os.name"), System.getProperty("os.version")));
+    errTxt.append(String.format("<p>Arch: %s</p>", System.getProperty("os.arch")));
+    errTxt.append("<hr>");
     while (!this.testsIn.isEmpty() && !this.testsOut.isEmpty()) {
       final var in = this.testsIn.pop();
       final var expectedOut = this.testsOut.pop();
