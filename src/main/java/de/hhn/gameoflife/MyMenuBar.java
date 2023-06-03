@@ -1,25 +1,23 @@
 package de.hhn.gameoflife;
 
-import java.awt.Dimension;
-import java.awt.GraphicsEnvironment;
-import javax.swing.JColorChooser;
-import javax.swing.JDesktopPane;
-import javax.swing.JFileChooser;
-import javax.swing.JInternalFrame;
-import javax.swing.JMenu;
-import javax.swing.JMenuBar;
-import javax.swing.JMenuItem;
+import java.awt.*;
+import java.util.HashMap;
+import javax.swing.*;
 import javax.swing.event.InternalFrameAdapter;
 import javax.swing.event.InternalFrameEvent;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
-/** A menu bar for the game. */
+/**
+ * A menu bar for the game.
+ */
 public class MyMenuBar extends JMenuBar {
 
   private static final FileNameExtensionFilter imageFileFilter =
       new FileNameExtensionFilter("Image files", "jpg", "jpeg", "png", "gif");
 
-  /** create a menu bar for an internal frame */
+  /**
+   * create a menu bar for an internal frame
+   */
   private static JMenuBar makeInternalFrameMenuBar(final JInternalFrame inFrame) {
     final var menuBar = new JMenuBar();
 
@@ -104,8 +102,43 @@ public class MyMenuBar extends JMenuBar {
         });
     styleMenu.add(deadColorMenuItem);
 
+
+    final var drawingModeMenu = new JMenu("Drawing Mode");
+    menuBar.add(drawingModeMenu);
+
+
+    final var penMenuItem = new JMenuItem("Pen");
+    penMenuItem.addActionListener(
+        e -> {
+          final var gol = (GamePanel) inFrame.getContentPane();
+          gol.setDrawing(true);
+        });
+
+    drawingModeMenu.add(penMenuItem);
+
+   final var categories =  new HashMap<DrawingStyleCategory,JMenu>();
+for (var drawingStyle : DrawingStyle.values()) {
+  final var dsmi = new JMenuItem(drawingStyle.getName());
+  dsmi.addActionListener(
+      e -> {
+        final var gol = (GamePanel) inFrame.getContentPane();
+        gol.setDrawing(false);
+        gol.setDrawingStyle(drawingStyle);
+        gol.setPaused(true);
+      }
+  );
+
+if(!categories.containsKey(drawingStyle.getCategory())) {
+  JMenu categoryMenu = new JMenu(drawingStyle.getCategory().getName());
+  categories.put(drawingStyle.getCategory(),categoryMenu);
+  drawingModeMenu.add(categoryMenu);
+}
+
+categories.get(drawingStyle.getCategory()).add(dsmi);
+}
+
     return menuBar;
-  }
+}
 
   private final JDesktopPane deskPane;
 
@@ -148,7 +181,9 @@ public class MyMenuBar extends JMenuBar {
     newInstanceMenu.add(testMenuItem);
   }
 
-  /** create a menu item to create a new internal frame */
+  /**
+   * create a menu item to create a new internal frame
+   */
   private JMenuItem makeInternalFrameCreatorMenuItem(
       final JDesktopPane deskPane, final Dimension preferredFrameSize, final int res) {
     final var menuItem = new JMenuItem(String.format("%dx%d", res, res));
@@ -169,5 +204,8 @@ public class MyMenuBar extends JMenuBar {
           inFrame.addInternalFrameListener(this.internalFrameClosed);
         });
     return menuItem;
+
   }
+
+
 }

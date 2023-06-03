@@ -1,20 +1,15 @@
 package de.hhn.gameoflife;
 
-import static de.hhn.gameoflife.State.useState;
-
-import java.awt.Color;
-import java.awt.Point;
-import java.awt.Rectangle;
+import javax.imageio.ImageIO;
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import javax.imageio.ImageIO;
-import javax.swing.BoxLayout;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JSlider;
+
+import static de.hhn.gameoflife.State.useState;
 
 /**
  * The main game panel.
@@ -31,6 +26,19 @@ public class GamePanel extends JPanel implements Disposable {
   private final DIContainer diContainer = new DIContainer();
   private boolean disposed = false;
   private final Lock lock;
+
+  private boolean drawing = true;
+
+  private DrawingStyle ds = DrawingStyle.BLOCK;
+
+
+  public void setDrawingStyle(DrawingStyle ds){
+    this.ds=ds;
+  }
+
+  public void setDrawing(boolean value) {
+    drawing = value;
+  }
 
   public GamePanel(final int width, final int height) {
     this.diContainer.addSingleton(new Settings(width, height));
@@ -83,10 +91,21 @@ public class GamePanel extends JPanel implements Disposable {
     this.worldUI.addMouseListener(
         new MouseListener() {
           @Override
-          public void mouseClicked(final MouseEvent e) {}
+          public void mouseClicked(final MouseEvent e) {
+            if (drawing) {
+              return;
+            }
+            GamePanel.this.togglePoints(e.getPoint(), ds.getStructure());
+
+            GamePanel.this.worldUI.draw(GamePanel.this.world.getWorldData());
+
+          }
 
           @Override
           public void mousePressed(final MouseEvent e) {
+            if (!drawing) {
+              return;
+            }
             synchronized (GamePanel.this.lock) {
               wasPaused.set(GamePanel.this.world.getPaused());
               GamePanel.this.world.setPaused(true);
@@ -100,20 +119,28 @@ public class GamePanel extends JPanel implements Disposable {
 
           @Override
           public void mouseReleased(final MouseEvent e) {
+            if (!drawing) {
+              return;
+            }
             GamePanel.this.world.setPaused(wasPaused.get());
           }
 
           @Override
-          public void mouseEntered(final MouseEvent e) {}
+          public void mouseEntered(final MouseEvent e) {
+          }
 
           @Override
-          public void mouseExited(final MouseEvent e) {}
+          public void mouseExited(final MouseEvent e) {
+          }
         });
 
     this.worldUI.addMouseMotionListener(
         new MouseMotionListener() {
           @Override
           public void mouseDragged(final MouseEvent e) {
+            if (!drawing) {
+              return;
+            }
             // if point is not in the worldUI, do nothing
             if (!relativeBoundingRect.contains(e.getPoint())) {
               return;
@@ -124,7 +151,8 @@ public class GamePanel extends JPanel implements Disposable {
           }
 
           @Override
-          public void mouseMoved(final MouseEvent e) {}
+          public void mouseMoved(final MouseEvent e) {
+          }
         });
   }
 
@@ -156,7 +184,27 @@ public class GamePanel extends JPanel implements Disposable {
     return this.world.togglePoint(x, y);
   }
 
-  /** free resources */
+  public void togglePoints(final Point point, Boolean[][] structure) {
+    final var cellWidth = (double) GamePanel.this.worldUI.getWidth() / (double) this.worldWidth;
+    final var cellHeight = (double) GamePanel.this.worldUI.getHeight() / (double) this.worldHeight;
+    final var xStart = (int) (point.x / cellWidth);
+    final var yStart = (int) (point.y / cellHeight);
+    for (var y = 0; y < structure.length; y++) {
+      var row = structure[y];
+      for (var x = 0; x < row.length; x++) {
+        var state = row[x];
+        this.world.togglePoint(x + xStart, y + yStart, state);
+      }
+
+
+    }
+
+
+  }
+
+  /**
+   * free resources
+   */
   public void dispose() {
     if (this.disposed) {
       return;
@@ -195,7 +243,9 @@ public class GamePanel extends JPanel implements Disposable {
     this.worldUI.setDeadColor(color);
   }
 
-  /** load world data from an image file */
+  /**
+   * load world data from an image file
+   */
   public void load(final File imageFile) {
     final var wasPaused = this.world.getPaused();
     this.world.setPaused(true);
@@ -225,7 +275,9 @@ public class GamePanel extends JPanel implements Disposable {
     this.world.setPaused(wasPaused);
   }
 
-  /** save world data to an image file */
+  /**
+   * save world data to an image file
+   */
   public void save(final File imageFile) {
     final var img = this.worldUI.getImage();
     final var fileName = imageFile.getName();
@@ -248,4 +300,9 @@ public class GamePanel extends JPanel implements Disposable {
   public boolean togglePaused() {
     return this.world.togglePaused();
   }
+
+  public void setPaused(boolean value) {
+    this.world.setPaused(value);
+  }
+
 }
