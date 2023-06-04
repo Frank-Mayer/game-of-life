@@ -232,9 +232,9 @@ public enum DrawingStyle {
         {false, false, false, false, false, false, false, false},
       }),
 
-  // Middle-Weighted-Spaceship
+  // High-Weighted-Spaceship
   HWSS(
-      "MWSS",
+      "HWSS",
       DrawingStyleCategory.SPACESHIPS,
       new Boolean[][] {
         {false, false, false, false, false, false, false, false, false},

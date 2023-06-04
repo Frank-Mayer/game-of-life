@@ -13,7 +13,7 @@ public class World {
   private final TPS tps;
   private final int worldWidth;
   private final int worldHeight;
-  private int minTickTime = 300;
+  private int minTickTime = 150;
   private final int worldSize;
   private final int worldHeightMinusOne;
   private final int worldWidthMinusOne;

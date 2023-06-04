@@ -57,13 +57,12 @@ public class GamePanel extends JPanel implements Disposable {
     final var minTickTimeLabel =
         new JLabel(String.format("Min Tick Time (%sms)", this.world.getMinTickTime()));
     this.add(minTickTimeLabel);
-    final var minTickTimeSlider = new JSlider(0, 1000, this.world.getMinTickTime());
+    final var minTickTimeSlider = new JSlider(0, 500, this.world.getMinTickTime());
     minTickTimeSlider.setPaintLabels(true);
     minTickTimeSlider.setPaintTrack(true);
     minTickTimeSlider.setPaintTicks(true);
     minTickTimeSlider.setMajorTickSpacing(100);
     minTickTimeSlider.setMinorTickSpacing(10);
-    minTickTimeSlider.setSnapToTicks(true);
     minTickTimeSlider.addChangeListener(
         e -> {
           this.world.setMinTickTime(minTickTimeSlider.getValue());
