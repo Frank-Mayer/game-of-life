@@ -85,17 +85,17 @@ public class GamePanel extends JPanel implements Disposable {
         new MouseListener() {
           @Override
           public void mouseClicked(final MouseEvent e) {
-            if (drawing) {
+            if (GamePanel.this.drawing || !GamePanel.this.world.getPaused()) {
               return;
             }
-            GamePanel.this.togglePoints(e.getPoint(), ds.getStructure());
+            GamePanel.this.togglePoints(e.getPoint(), GamePanel.this.ds.getStructure());
 
             GamePanel.this.worldUI.draw(GamePanel.this.world.getWorldData());
           }
 
           @Override
           public void mousePressed(final MouseEvent e) {
-            if (!drawing) {
+            if (!GamePanel.this.drawing) {
               return;
             }
             synchronized (GamePanel.this.lock) {
