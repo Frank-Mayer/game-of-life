@@ -31,6 +31,8 @@ public class GamePanel extends JPanel implements Disposable {
   private final DIContainer diContainer = new DIContainer();
   private boolean disposed = false;
   private final Lock lock;
+  private boolean drawing = true;
+  private DrawingStyle ds = DrawingStyle.BLOCK;
 
   public GamePanel(final int width, final int height) {
     this.diContainer.addSingleton(new Settings(width, height));
@@ -83,10 +85,20 @@ public class GamePanel extends JPanel implements Disposable {
     this.worldUI.addMouseListener(
         new MouseListener() {
           @Override
-          public void mouseClicked(final MouseEvent e) {}
+          public void mouseClicked(final MouseEvent e) {
+            if (drawing) {
+              return;
+            }
+            GamePanel.this.togglePoints(e.getPoint(), ds.getStructure());
+
+            GamePanel.this.worldUI.draw(GamePanel.this.world.getWorldData());
+          }
 
           @Override
           public void mousePressed(final MouseEvent e) {
+            if (!drawing) {
+              return;
+            }
             synchronized (GamePanel.this.lock) {
               wasPaused.set(GamePanel.this.world.getPaused());
               GamePanel.this.world.setPaused(true);
@@ -100,6 +112,9 @@ public class GamePanel extends JPanel implements Disposable {
 
           @Override
           public void mouseReleased(final MouseEvent e) {
+            if (!drawing) {
+              return;
+            }
             GamePanel.this.world.setPaused(wasPaused.get());
           }
 
@@ -114,6 +129,9 @@ public class GamePanel extends JPanel implements Disposable {
         new MouseMotionListener() {
           @Override
           public void mouseDragged(final MouseEvent e) {
+            if (!drawing) {
+              return;
+            }
             // if point is not in the worldUI, do nothing
             if (!relativeBoundingRect.contains(e.getPoint())) {
               return;
@@ -126,6 +144,14 @@ public class GamePanel extends JPanel implements Disposable {
           @Override
           public void mouseMoved(final MouseEvent e) {}
         });
+  }
+
+  public void setDrawingStyle(final DrawingStyle ds) {
+    this.ds = ds;
+  }
+
+  public void setDrawing(final boolean value) {
+    drawing = value;
   }
 
   /**
@@ -154,6 +180,20 @@ public class GamePanel extends JPanel implements Disposable {
     final var x = (int) (point.x / cellWidth);
     final var y = (int) (point.y / cellHeight);
     return this.world.togglePoint(x, y);
+  }
+
+  public void togglePoints(final Point point, final Boolean[][] structure) {
+    final var cellWidth = (double) GamePanel.this.worldUI.getWidth() / (double) this.worldWidth;
+    final var cellHeight = (double) GamePanel.this.worldUI.getHeight() / (double) this.worldHeight;
+    final var xStart = (int) (point.x / cellWidth);
+    final var yStart = (int) (point.y / cellHeight);
+    for (var y = 0; y < structure.length; y++) {
+      final var row = structure[y];
+      for (var x = 0; x < row.length; x++) {
+        final var state = row[x];
+        this.world.togglePoint(x + xStart, y + yStart, state);
+      }
+    }
   }
 
   /** free resources */
@@ -247,5 +287,9 @@ public class GamePanel extends JPanel implements Disposable {
 
   public boolean togglePaused() {
     return this.world.togglePaused();
+  }
+
+  public void setPaused(final boolean value) {
+    this.world.setPaused(value);
   }
 }

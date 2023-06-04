@@ -2,6 +2,7 @@ package de.hhn.gameoflife;
 
 import java.awt.Dimension;
 import java.awt.GraphicsEnvironment;
+import java.util.HashMap;
 import javax.swing.JColorChooser;
 import javax.swing.JDesktopPane;
 import javax.swing.JFileChooser;
@@ -103,6 +104,38 @@ public class MyMenuBar extends JMenuBar {
           }
         });
     styleMenu.add(deadColorMenuItem);
+
+    final var drawingModeMenu = new JMenu("Drawing Mode");
+    menuBar.add(drawingModeMenu);
+
+    final var penMenuItem = new JMenuItem("Pen");
+    penMenuItem.addActionListener(
+        e -> {
+          final var gol = (GamePanel) inFrame.getContentPane();
+          gol.setDrawing(true);
+        });
+
+    drawingModeMenu.add(penMenuItem);
+
+    final var categories = new HashMap<DrawingStyleCategory, JMenu>();
+    for (final var drawingStyle : DrawingStyle.values()) {
+      final var dsmi = new JMenuItem(drawingStyle.getName());
+      dsmi.addActionListener(
+          e -> {
+            final var gol = (GamePanel) inFrame.getContentPane();
+            gol.setDrawing(false);
+            gol.setDrawingStyle(drawingStyle);
+            gol.setPaused(true);
+          });
+
+      if (!categories.containsKey(drawingStyle.getCategory())) {
+        final var categoryMenu = new JMenu(drawingStyle.getCategory().getName());
+        categories.put(drawingStyle.getCategory(), categoryMenu);
+        drawingModeMenu.add(categoryMenu);
+      }
+
+      categories.get(drawingStyle.getCategory()).add(dsmi);
+    }
 
     return menuBar;
   }
