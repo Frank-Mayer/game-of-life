@@ -2,7 +2,9 @@ package de.hhn.gameoflife;
 
 public enum DrawingStyleCategory {
 
-  STILL_LIFES("Still Lives");
+  STILL_LIFES("Still Lives"),
+  OSCILLATORS("Oscillators"),
+  SPACESHIPS("Spaceships");
 
 
 
