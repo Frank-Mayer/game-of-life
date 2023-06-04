@@ -129,7 +129,7 @@ public class MyMenuBar extends JMenuBar {
           });
 
       if (!categories.containsKey(drawingStyle.getCategory())) {
-        final JMenu categoryMenu = new JMenu(drawingStyle.getCategory().getName());
+        final var categoryMenu = new JMenu(drawingStyle.getCategory().getName());
         categories.put(drawingStyle.getCategory(), categoryMenu);
         drawingModeMenu.add(categoryMenu);
       }
