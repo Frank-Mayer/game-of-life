@@ -2,6 +2,7 @@ package de.hhn.gameoflife;
 
 import java.util.BitSet;
 import java.util.Stack;
+import java.util.concurrent.Semaphore;
 import javax.swing.JInternalFrame;
 import javax.swing.JLabel;
 import javax.swing.SwingUtilities;
@@ -30,7 +31,7 @@ public class TestWindow extends JInternalFrame implements Disposable {
           }
         });
     diContainer.addSingleton(TPS.class);
-    diContainer.addSingleton(Lock.class);
+    diContainer.addSingleton(new Semaphore(1));
     this.world = diContainer.get(World.class);
 
     {

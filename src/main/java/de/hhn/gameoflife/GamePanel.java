@@ -10,6 +10,7 @@ import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.util.concurrent.Semaphore;
 import javax.imageio.ImageIO;
 import javax.swing.BoxLayout;
 import javax.swing.JLabel;
@@ -30,20 +31,19 @@ public class GamePanel extends JPanel implements Disposable {
   private int worldHeight;
   private final DIContainer diContainer = new DIContainer();
   private boolean disposed = false;
-  private final Lock lock;
   private boolean drawing = true;
   private DrawingStyle ds = DrawingStyle.BLOCK;
+  private final Semaphore worldDataSem = new Semaphore(1);
 
   public GamePanel(final int width, final int height) {
     this.diContainer.addSingleton(new Settings(width, height));
     this.diContainer.addSingleton(World.class);
     this.diContainer.addSingleton(WorldUI.class);
     this.diContainer.addSingleton(TPS.class);
-    this.diContainer.addSingleton(Lock.class);
+    this.diContainer.addSingleton(this.worldDataSem);
 
     this.worldWidth = width;
     this.worldHeight = height;
-    this.lock = diContainer.get(Lock.class);
 
     // initialize world
     this.world = this.diContainer.get(World.class);
@@ -85,11 +85,16 @@ public class GamePanel extends JPanel implements Disposable {
         new MouseListener() {
           @Override
           public void mouseClicked(final MouseEvent e) {
-            if (GamePanel.this.drawing || !GamePanel.this.world.getPaused()) {
+            if (GamePanel.this.drawing) {
               return;
             }
-            GamePanel.this.togglePoints(e.getPoint(), GamePanel.this.ds.getStructure());
-
+            try {
+              GamePanel.this.worldDataSem.acquire();
+              GamePanel.this.togglePoints(e.getPoint(), GamePanel.this.ds.getStructure());
+            } catch (final InterruptedException interruptedException) {
+            } finally {
+              GamePanel.this.worldDataSem.release();
+            }
             GamePanel.this.worldUI.draw(GamePanel.this.world.getWorldData());
           }
 
@@ -98,7 +103,8 @@ public class GamePanel extends JPanel implements Disposable {
             if (!GamePanel.this.drawing) {
               return;
             }
-            synchronized (GamePanel.this.lock) {
+            try {
+              GamePanel.this.worldDataSem.acquire();
               wasPaused.set(GamePanel.this.world.getPaused());
               GamePanel.this.world.setPaused(true);
               relativeBoundingRect.setSize(
@@ -106,6 +112,10 @@ public class GamePanel extends JPanel implements Disposable {
 
               drawNewState.set(GamePanel.this.togglePoint(e.getPoint()));
               GamePanel.this.worldUI.draw(GamePanel.this.world.getWorldData());
+            } catch (final InterruptedException interruptedException) {
+              interruptedException.printStackTrace();
+            } finally {
+              GamePanel.this.worldDataSem.release();
             }
           }
 
@@ -236,32 +246,34 @@ public class GamePanel extends JPanel implements Disposable {
 
   /** load world data from an image file */
   public void load(final File imageFile) {
-    final var wasPaused = this.world.getPaused();
-    this.world.setPaused(true);
-    BufferedImage img;
     try {
-      img = ImageIO.read(imageFile);
-      if (img == null) {
-        Alert.show("Error", "The selected file is not a valid image file.", this.worldUI);
-        this.world.setPaused(wasPaused);
+      this.worldDataSem.acquire();
+      BufferedImage img;
+      try {
+        img = ImageIO.read(imageFile);
+        if (img == null) {
+          Alert.show("Error", "The selected file is not a valid image file.", this.worldUI);
+          return;
+        }
+      } catch (final Exception e) {
+        Alert.show("Error", e.getMessage(), this.worldUI);
         return;
       }
-    } catch (final Exception e) {
-      Alert.show("Error", e.getMessage(), this.worldUI);
-      this.world.setPaused(wasPaused);
-      return;
+      final var resized =
+          new BufferedImage(this.worldWidth, this.worldHeight, BufferedImage.TYPE_INT_RGB);
+      final var g = resized.createGraphics();
+      g.drawImage(img, 0, 0, this.worldWidth, this.worldHeight, null);
+      // apply dithering filters
+      Dithering.grayScale(resized);
+      Dithering.floydSteinberg(resized);
+      // write pixels into world data
+      this.world.setDataFrom(resized);
+      g.dispose();
+    } catch (final InterruptedException e) {
+      e.printStackTrace();
+    } finally {
+      this.worldDataSem.release();
     }
-    final var resized =
-        new BufferedImage(this.worldWidth, this.worldHeight, BufferedImage.TYPE_INT_RGB);
-    final var g = resized.createGraphics();
-    g.drawImage(img, 0, 0, this.worldWidth, this.worldHeight, null);
-    // apply dithering filters
-    Dithering.grayScale(resized);
-    Dithering.floydSteinberg(resized);
-    // write pixels into world data
-    this.world.setDataFrom(resized);
-    g.dispose();
-    this.world.setPaused(wasPaused);
   }
 
   /** save world data to an image file */

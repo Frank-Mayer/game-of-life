@@ -6,6 +6,7 @@ import java.util.Random;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 public class World {
@@ -24,7 +25,7 @@ public class World {
   private final ScheduledExecutorService sheduler = Executors.newSingleThreadScheduledExecutor();
   private Runnable[] calcTickParts;
   private CompletableFuture<?>[] calcTickPartsFutures;
-  private final Lock lock;
+  private final Semaphore worldDataSem;
   private boolean disposed;
 
   public World(
@@ -32,10 +33,10 @@ public class World {
       final Drawable<BitSet> ui,
       final Random rand,
       final TPS tps,
-      final Lock lock) {
+      final Semaphore worldDataSem) {
     this.ui = ui;
     this.tps = tps;
-    this.lock = lock;
+    this.worldDataSem = worldDataSem;
     this.worldWidth = settings.worldWidth();
     this.worldHeight = settings.worldHeight();
     this.worldSize = this.worldWidth * this.worldHeight;
@@ -110,10 +111,10 @@ public class World {
   /** calculate next generation */
   public void calcTick(final int start, final int end) {
     // initialize local variables
-    int x = start & this.worldWidthMinusOne;
+    int x = start & this.worldWidthMinusOne; // start % this.worldWidth
     int xPlusOne = x + 1;
     int xMinusOne = x - 1;
-    int y = start >> this.logWorldWidth;
+    int y = start >> this.logWorldWidth; // start / this.worldWidth
     int yPlusOne = y + 1;
     int yMinusOne = y - 1;
     int i = start;
@@ -178,10 +179,15 @@ public class World {
   public void clear() {
     final var wasPaused = this.paused;
     this.paused = true;
-    synchronized (this.lock) {
+    try {
+      this.worldDataSem.acquire();
       this.worldDataA.clear();
       this.worldDataB.clear();
       this.ui.draw(this.worldDataA);
+    } catch (final InterruptedException e) {
+      e.printStackTrace();
+    } finally {
+      this.worldDataSem.release();
     }
     this.paused = wasPaused;
   }
@@ -189,12 +195,17 @@ public class World {
   public void overwriteWorldData(final BitSet in) {
     final var wasPaused = this.paused;
     this.paused = true;
-    synchronized (this.lock) {
+    try {
+      this.worldDataSem.acquire();
       this.worldDataA.clear();
       this.worldDataA.or(in);
       this.worldDataB.clear();
       this.worldDataB.or(in);
       this.ui.draw(this.worldDataA);
+    } catch (final InterruptedException e) {
+      e.printStackTrace();
+    } finally {
+      this.worldDataSem.release();
     }
     this.paused = wasPaused;
   }
@@ -261,35 +272,43 @@ public class World {
       return;
     }
 
-    // save start time
-    final var start = System.nanoTime();
+    try {
+      this.worldDataSem.acquire();
+      // save start time
+      final var start = System.nanoTime();
 
-    // calculate next generation
-    calcTick(0, this.worldSize);
+      // calculate next generation
+      calcTick(0, this.worldSize);
 
-    // calculate time spend for this tick
-    final var tickTime = System.nanoTime() - start;
-    this.tps.add(tickTime);
+      // calculate time spend for this tick
+      final var tickTime = System.nanoTime() - start;
+      this.tps.add(tickTime);
 
-    // sleep if the tick was too fast
-    final var sleepTime = this.minTickTime - tickTime / 1000000L;
-    if (sleepTime > 0L) {
-      try {
-        Thread.sleep(sleepTime);
-      } catch (final InterruptedException e) {
-        // swap the world data a and b; a stays primary
-        final var tmp = this.worldDataA;
-        this.worldDataA = this.worldDataB;
-        this.worldDataB = tmp;
+      // sleep if the tick was too fast
+      final var sleepTime = this.minTickTime - tickTime / 1000000L;
+      if (sleepTime > 0L) {
+        try {
+          Thread.sleep(sleepTime);
+        } catch (final InterruptedException e) {
+          // swap the world data a and b; a stays primary
+          final var tmp = this.worldDataA;
+          this.worldDataA = this.worldDataB;
+          this.worldDataB = tmp;
 
-        return;
+          return;
+        }
       }
-    }
 
-    // swap the world data a and b; a stays primary
-    final var tmp = this.worldDataA;
-    this.worldDataA = this.worldDataB;
-    this.worldDataB = tmp;
+      // swap the world data a and b; a stays primary
+      final var tmp = this.worldDataA;
+      this.worldDataA = this.worldDataB;
+      this.worldDataB = tmp;
+    } catch (final InterruptedException e) {
+      // ignore
+      return;
+    } finally {
+      this.worldDataSem.release();
+    }
 
     // pass the new generation to the UI
     this.ui.draw(this.worldDataA);
@@ -302,45 +321,54 @@ public class World {
       return;
     }
 
-    // save start time
-    final var start = System.nanoTime();
-
-    // calculate next generation
-    final var partsCount = this.calcTickParts.length;
-    for (int i = 0; i < partsCount; ++i) {
-      this.calcTickPartsFutures[i] = CompletableFuture.runAsync(this.calcTickParts[i]);
-    }
-    final CompletableFuture<Void> allDoneFuture = CompletableFuture.allOf(calcTickPartsFutures);
     try {
-      allDoneFuture.get();
-    } catch (final Exception e) {
-      // ignore
-      return;
-    }
+      this.worldDataSem.acquire();
 
-    // calculate time spend for this tick
-    final var tickTime = System.nanoTime() - start;
-    this.tps.add(tickTime);
+      // save start time
+      final var start = System.nanoTime();
 
-    // sleep if the tick was too fast
-    final var sleepTime = this.minTickTime - tickTime / 1000000L;
-    if (sleepTime > 0L) {
+      // calculate next generation
+      final var partsCount = this.calcTickParts.length;
+      for (int i = 0; i < partsCount; ++i) {
+        this.calcTickPartsFutures[i] = CompletableFuture.runAsync(this.calcTickParts[i]);
+      }
+      final CompletableFuture<Void> allDoneFuture = CompletableFuture.allOf(calcTickPartsFutures);
       try {
-        Thread.sleep(sleepTime);
-      } catch (final InterruptedException e) {
-        // swap the world data a and b; a stays primary
-        final var tmp = this.worldDataA;
-        this.worldDataA = this.worldDataB;
-        this.worldDataB = tmp;
-
+        allDoneFuture.get();
+      } catch (final Exception e) {
+        // ignore
         return;
       }
-    }
 
-    // swap the world data a and b; a stays primary
-    final var tmp = this.worldDataA;
-    this.worldDataA = this.worldDataB;
-    this.worldDataB = tmp;
+      // calculate time spend for this tick
+      final var tickTime = System.nanoTime() - start;
+      this.tps.add(tickTime);
+
+      // sleep if the tick was too fast
+      final var sleepTime = this.minTickTime - tickTime / 1000000L;
+      if (sleepTime > 0L) {
+        try {
+          Thread.sleep(sleepTime);
+        } catch (final InterruptedException e) {
+          // swap the world data a and b; a stays primary
+          final var tmp = this.worldDataA;
+          this.worldDataA = this.worldDataB;
+          this.worldDataB = tmp;
+
+          return;
+        }
+      }
+
+      // swap the world data a and b; a stays primary
+      final var tmp = this.worldDataA;
+      this.worldDataA = this.worldDataB;
+      this.worldDataB = tmp;
+    } catch (final InterruptedException e) {
+      // ignore
+      return;
+    } finally {
+      this.worldDataSem.release();
+    }
 
     // pass the new generation to the UI
     this.ui.draw(this.worldDataA);

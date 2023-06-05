@@ -125,8 +125,6 @@ public class MyMenuBar extends JMenuBar {
             final var gol = (GamePanel) inFrame.getContentPane();
             gol.setDrawing(false);
             gol.setDrawingStyle(drawingStyle);
-            pauseMenuItem.setText("Resume");
-            gol.setPaused(true);
           });
 
       if (!categories.containsKey(drawingStyle.getCategory())) {
