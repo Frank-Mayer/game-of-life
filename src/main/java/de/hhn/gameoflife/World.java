@@ -86,6 +86,10 @@ public class World {
   public void calcTick() {
     final var livingCells = new int[6 * 6];
     final var neighbors = new int[6 * 6];
+    int chunkY;
+    int chunkYMinusOne;
+    int chunkX;
+    int chunkXMinusOne;
 
     // divide world into 4x4 chunks and iterate over them
     for (var chunkWorldY = 0; chunkWorldY < this.worldHeight / 4; ++chunkWorldY) {
@@ -93,19 +97,27 @@ public class World {
         // save all living cells in this chunk (including the border
         // cells)
         var livingCellsCount = 0;
-        for (var chunkY = 0; chunkY < 6; ++chunkY) {
+        chunkY = 0;
+        chunkYMinusOne = -1;
+        while (chunkY != 6) {
           final var worldY =
-              ((chunkWorldY * 4) + chunkY + -1 + this.worldHeight) & this.worldHeightMinusOne;
-          for (var chunkX = 0; chunkX < 6; ++chunkX) {
+              ((chunkWorldY << 2) + chunkYMinusOne + this.worldHeight) & this.worldHeightMinusOne;
+          chunkX = 0;
+          chunkXMinusOne = -1;
+          while(chunkX != 6) {
             final var worldX =
-                ((chunkWorldX * 4) + chunkX + -1 + this.worldWidth) & this.worldWidthMinusOne;
+                ((chunkWorldX << 2) + chunkXMinusOne + this.worldWidth) & this.worldWidthMinusOne;
             final var chunkIndex = ((chunkY) * 6) + chunkX;
             final var worldIndex = (worldY * this.worldWidth) + worldX;
             if (this.worldDataA.get(worldIndex)) {
               livingCells[livingCellsCount] = chunkIndex;
               ++livingCellsCount;
             }
+            chunkXMinusOne = chunkX;
+            ++chunkX;
           }
+          chunkYMinusOne = chunkY;
+          ++chunkY;
         }
 
         // count neighbors
@@ -142,11 +154,11 @@ public class World {
         }
 
         // write new data to worldDataB
-        for (var chunkY = 1; chunkY < 5; ++chunkY) {
-          for (var chunkX = 1; chunkX < 5; ++chunkX) {
+        for (chunkY = 1; chunkY < 5; ++chunkY) {
+          for (chunkX = 1; chunkX < 5; ++chunkX) {
             final var chunkIndex = (chunkY * 6) + chunkX;
-            final var worldY = (chunkWorldY * 4) + chunkY + -1;
-            final var worldX = (chunkWorldX * 4) + chunkX + -1;
+            final var worldY = (chunkWorldY << 2) + chunkY + -1;
+            final var worldX = (chunkWorldX << 2) + chunkX + -1;
             final var worldIndex = (worldY * this.worldWidth) + worldX;
             this.worldDataB.set(
                 worldIndex,
