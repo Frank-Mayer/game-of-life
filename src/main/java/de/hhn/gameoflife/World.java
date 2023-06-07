@@ -89,7 +89,6 @@ public class World {
       for (var chunkWorldX = 0; chunkWorldX < this.worldWidth / 4; ++chunkWorldX) {
         // save all living cells in this chunk (including the border
         // cells)
-        System.out.println("save all living cells in this chunk");
         final var livingCells = new int[6 * 6];
         var livingCellsCount = 0;
         for (var chunkY = 0; chunkY < 6; ++chunkY) {
@@ -100,7 +99,6 @@ public class World {
                 ((chunkWorldX * 4) + chunkX + -1 + this.worldWidth) & this.worldWidthMinusOne;
             final var chunkIndex = ((chunkY) * 6) + chunkX;
             final var worldIndex = (worldY * this.worldWidth) + worldX;
-            System.out.printf("chunk: %d, world: %d%n", chunkIndex, worldIndex);
             if (this.worldDataA.get(worldIndex)) {
               livingCells[livingCellsCount] = chunkIndex;
               ++livingCellsCount;
@@ -109,12 +107,10 @@ public class World {
         }
 
         // cound neighbors
-        System.out.println("cound neighbors");
         final var neighbors = new int[6 * 6];
         var neighborIndex = 0;
         for (var i = 0; i < livingCellsCount; ++i) {
           final var livingIndex = livingCells[i];
-          System.out.printf("livingIndex: %d at %d%n", livingIndex, i);
           if ((neighborIndex = (livingIndex + 1)) < 36) {
             ++neighbors[neighborIndex];
           }
@@ -142,7 +138,6 @@ public class World {
         }
 
         // write new data to worldDataB
-        System.out.println("write new data to worldDataB");
         for (var chunkY = 1; chunkY < 5; ++chunkY) {
           for (var chunkX = 1; chunkX < 5; ++chunkX) {
             final var chunkIndex = (chunkY * 6) + chunkX;
@@ -261,46 +256,38 @@ public class World {
     }
 
     try {
-      System.out.println("sem acquire");
       this.worldDataSem.acquire();
-      System.out.println("sem acquired");
       // save start time
       final var start = System.nanoTime();
 
       // calculate next generation
       this.calcTick();
-      System.out.println("tick");
 
       // calculate time spend for this tick
       final var tickTime = System.nanoTime() - start;
       this.tps.add(tickTime);
 
       // sleep if the tick was too fast
-      // final var sleepTime = this.minTickTime - tickTime / 1000000L;
-      // if (sleepTime > 0L) {
-      // try {
-      // System.out.printf("sleep %d\n", sleepTime);
-      // Thread.sleep(sleepTime);
-      // } catch (final InterruptedException e) {
-      // System.out.println("interrupted");
-      // return;
-      // }
-      // }
+      final var sleepTime = this.minTickTime - tickTime / 1000000L;
+      if (sleepTime > 0L) {
+        try {
+          Thread.sleep(sleepTime);
+        } catch (final InterruptedException e) {
+          return;
+        }
+      }
 
       // swap the world data a and b; a stays primary
-      System.out.println("swap");
       final var tmp = this.worldDataA;
       this.worldDataA = this.worldDataB;
       this.worldDataB = tmp;
     } catch (final InterruptedException e) {
-      System.out.println("interrupted");
       return;
     } finally {
       this.worldDataSem.release();
     }
 
     // pass the new generation to the UI
-    System.out.println("draw");
     this.ui.draw(this.worldDataA);
   }
 }
