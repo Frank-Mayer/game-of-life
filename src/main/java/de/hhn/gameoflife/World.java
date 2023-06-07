@@ -84,12 +84,14 @@ public class World {
 
   /** calculate next generation */
   public void calcTick() {
+    final var livingCells = new int[6 * 6];
+    final var neighbors = new int[6 * 6];
+
     // divide world into 4x4 chunks and iterate over them
     for (var chunkWorldY = 0; chunkWorldY < this.worldHeight / 4; ++chunkWorldY) {
       for (var chunkWorldX = 0; chunkWorldX < this.worldWidth / 4; ++chunkWorldX) {
         // save all living cells in this chunk (including the border
         // cells)
-        final var livingCells = new int[6 * 6];
         var livingCellsCount = 0;
         for (var chunkY = 0; chunkY < 6; ++chunkY) {
           final var worldY =
@@ -106,9 +108,11 @@ public class World {
           }
         }
 
-        // cound neighbors
-        final var neighbors = new int[6 * 6];
+        // count neighbors
         var neighborIndex = 0;
+        for(var i = 0; i<36; ++i) {
+          neighbors[i] = 0;
+        }
         for (var i = 0; i < livingCellsCount; ++i) {
           final var livingIndex = livingCells[i];
           if ((neighborIndex = (livingIndex + 1)) < 36) {
