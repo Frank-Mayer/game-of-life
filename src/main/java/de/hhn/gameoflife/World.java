@@ -92,8 +92,8 @@ public class World {
     int chunkXMinusOne;
 
     // divide world into 4x4 chunks and iterate over them
-    for (var chunkWorldY = 0; chunkWorldY < this.worldHeight / 4; ++chunkWorldY) {
-      for (var chunkWorldX = 0; chunkWorldX < this.worldWidth / 4; ++chunkWorldX) {
+    for (var chunkWorldY = 0; chunkWorldY < (this.worldHeight >> 2); ++chunkWorldY) {
+      for (var chunkWorldX = 0; chunkWorldX < (this.worldWidth >> 2); ++chunkWorldX) {
         // save all living cells in this chunk (including the border
         // cells)
         var livingCellsCount = 0;
@@ -108,7 +108,7 @@ public class World {
             final var worldX =
                 ((chunkWorldX << 2) + chunkXMinusOne + this.worldWidth) & this.worldWidthMinusOne;
             final var chunkIndex = ((chunkY) * 6) + chunkX;
-            final var worldIndex = (worldY * this.worldWidth) + worldX;
+            final var worldIndex = (worldY << this.logWorldWidth) + worldX;
             if (this.worldDataA.get(worldIndex)) {
               livingCells[livingCellsCount] = chunkIndex;
               ++livingCellsCount;
@@ -161,8 +161,8 @@ public class World {
           chunkXMinusOne = 0;
           while (chunkX != 5)  {
             final var chunkIndex = (chunkY * 6) + chunkX;
-            final var worldY = (chunkWorldY << 2) + chunkY + -1;
-            final var worldX = (chunkWorldX << 2) + chunkX + -1;
+            final var worldY = (chunkWorldY << 2) + chunkYMinusOne;
+            final var worldX = (chunkWorldX << 2) + chunkXMinusOne;
             final var worldIndex = (worldY * this.worldWidth) + worldX;
             this.worldDataB.set(
                 worldIndex,
