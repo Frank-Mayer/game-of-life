@@ -132,18 +132,18 @@ public class World {
         }
 
         if (World.chunkCache.containsKey(hash)) {
+          final var cacheData = World.chunkCache.get(hash);
           chunkY = 0;
           chunkYMinusOne = -1;
-          while (chunkY != 5) {
+          while (chunkY != 4) {
             chunkX = 0;
             chunkXMinusOne = -1;
             final var worldY = (chunkWorldY << 2) + chunkY;
-                
-            while (chunkX != 5) {
+            while (chunkX != 4) {
               final var worldX = (chunkWorldX << 2) + chunkX;
               final var chunkIndex = (chunkY << 2) + chunkX;
               final var worldIndex = (worldY << this.logWorldWidth) + worldX;
-              this.worldDataB.set(worldIndex, World.chunkCache.get(hash).get(chunkIndex));
+              this.worldDataB.set(worldIndex, cacheData.get(chunkIndex));
               chunkXMinusOne = chunkX;
               ++chunkX;
             }
@@ -202,7 +202,8 @@ public class World {
             final var alive =
                 neighbors[chunkIndex] == 3
                     || this.worldDataA.get(worldIndex) && neighbors[chunkIndex] == 2;
-            cacheData.set(cacheDataIndex++, alive);
+            cacheData.set(cacheDataIndex, alive);
+            ++cacheDataIndex;
             this.worldDataB.set(worldIndex, alive);
             chunkXMinusOne = chunkX;
             ++chunkX;
