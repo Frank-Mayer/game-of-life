@@ -154,8 +154,12 @@ public class World {
         }
 
         // write new data to worldDataB
-        for (chunkY = 1; chunkY < 5; ++chunkY) {
-          for (chunkX = 1; chunkX < 5; ++chunkX) {
+        chunkY = 1;
+        chunkYMinusOne = 0;
+        while (chunkY != 5) {
+          chunkX = 1;
+          chunkXMinusOne = 0;
+          while (chunkX != 5)  {
             final var chunkIndex = (chunkY * 6) + chunkX;
             final var worldY = (chunkWorldY << 2) + chunkY + -1;
             final var worldX = (chunkWorldX << 2) + chunkX + -1;
@@ -164,7 +168,11 @@ public class World {
                 worldIndex,
                 neighbors[chunkIndex] == 3
                     || this.worldDataA.get(worldIndex) && neighbors[chunkIndex] == 2);
+            chunkXMinusOne = chunkX;
+            ++chunkX;
           }
+          chunkYMinusOne = chunkY;
+          ++chunkY;
         }
       }
     }
