@@ -2,6 +2,8 @@ package de.hhn.gameoflife;
 
 import java.awt.image.BufferedImage;
 import java.util.BitSet;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
@@ -60,8 +62,8 @@ public class World {
   /**
    * Sets the state of the cell at the given point to the given state.
    *
-   * @param x     the x coordinate of the point
-   * @param y     the y coordinate of the point
+   * @param x the x coordinate of the point
+   * @param y the y coordinate of the point
    * @param state the new state of the cell
    */
   public void togglePoint(final int x, final int y, final boolean state) {
@@ -82,6 +84,8 @@ public class World {
     return this.worldDataA.get(index);
   }
 
+  private static final Map<Long, BitSet> chunkCache = new HashMap<>(2 ^ 36);
+
   /** calculate next generation */
   public void calcTick() {
     final var livingCells = new int[6 * 6];
@@ -93,32 +97,61 @@ public class World {
     int chunkX;
     int chunkXMinusOne;
     int livingCellsCount;
+    long hash;
 
     // divide world into 4x4 chunks and iterate over them
     for (chunkWorldY = 0; chunkWorldY < (this.worldHeight >> 2); ++chunkWorldY) {
       for (chunkWorldX = 0; chunkWorldX < (this.worldWidth >> 2); ++chunkWorldX) {
         // save all living cells in this chunk (including the border
         // cells)
+        hash = 0x0;
         livingCellsCount = 0;
         chunkY = 0;
         chunkYMinusOne = -1;
         while (chunkY != 6) {
-          final var worldY = ((chunkWorldY << 2) + chunkYMinusOne + this.worldHeight) & this.worldHeightMinusOne;
+          final var worldY =
+              ((chunkWorldY << 2) + chunkYMinusOne + this.worldHeight) & this.worldHeightMinusOne;
           chunkX = 0;
           chunkXMinusOne = -1;
           while (chunkX != 6) {
-            final var worldX = ((chunkWorldX << 2) + chunkXMinusOne + this.worldWidth) & this.worldWidthMinusOne;
+            final var worldX =
+                ((chunkWorldX << 2) + chunkXMinusOne + this.worldWidth) & this.worldWidthMinusOne;
             final var chunkIndex = ((chunkY) * 6) + chunkX;
             final var worldIndex = (worldY << this.logWorldWidth) + worldX;
             if (this.worldDataA.get(worldIndex)) {
               livingCells[livingCellsCount] = chunkIndex;
               ++livingCellsCount;
+              hash |= 0x1L;
             }
+            hash <<= 1;
             chunkXMinusOne = chunkX;
             ++chunkX;
           }
           chunkYMinusOne = chunkY;
           ++chunkY;
+        }
+
+        if (World.chunkCache.containsKey(hash)) {
+          System.out.println("cache hit");
+          chunkY = 0;
+          chunkYMinusOne = -1;
+          while (chunkY != 5) {
+            chunkX = 0;
+            chunkXMinusOne = -1;
+            final var worldY = (chunkWorldY << 2) + chunkY;
+                
+            while (chunkX != 5) {
+              final var worldX = (chunkWorldX << 2) + chunkX;
+              final var chunkIndex = (chunkY << 2) + chunkX;
+              final var worldIndex = (worldY << this.logWorldWidth) + worldX;
+              this.worldDataB.set(worldIndex, World.chunkCache.get(hash).get(chunkIndex));
+              chunkXMinusOne = chunkX;
+              ++chunkX;
+            }
+            chunkYMinusOne = chunkY;
+            ++chunkY;
+          }
+          continue;
         }
 
         // count neighbors
@@ -155,6 +188,8 @@ public class World {
         }
 
         // write new data to worldDataB
+        final var cacheData = new BitSet(16);
+        var cacheDataIndex = 0;
         chunkY = 1;
         chunkYMinusOne = 0;
         while (chunkY != 5) {
@@ -165,16 +200,18 @@ public class World {
             final var worldY = (chunkWorldY << 2) + chunkYMinusOne;
             final var worldX = (chunkWorldX << 2) + chunkXMinusOne;
             final var worldIndex = (worldY << this.logWorldWidth) + worldX;
-            this.worldDataB.set(
-                worldIndex,
+            final var alive =
                 neighbors[chunkIndex] == 3
-                    || this.worldDataA.get(worldIndex) && neighbors[chunkIndex] == 2);
+                    || this.worldDataA.get(worldIndex) && neighbors[chunkIndex] == 2;
+            cacheData.set(cacheDataIndex++, alive);
+            this.worldDataB.set(worldIndex, alive);
             chunkXMinusOne = chunkX;
             ++chunkX;
           }
           chunkYMinusOne = chunkY;
           ++chunkY;
         }
+        World.chunkCache.put(hash, cacheData);
       }
     }
   }
