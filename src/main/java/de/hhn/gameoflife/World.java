@@ -132,7 +132,6 @@ public class World {
         }
 
         if (World.chunkCache.containsKey(hash)) {
-          System.out.println("cache hit");
           chunkY = 0;
           chunkYMinusOne = -1;
           while (chunkY != 5) {
