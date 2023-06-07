@@ -165,7 +165,7 @@ public class MyMenuBar extends JMenuBar {
     final var preferredFrameSize = new Dimension(maxWindowSide, maxWindowSide);
 
     // add menu items for different resolutions
-    for (int i = 5; i < 14; ++i) {
+    for (int i = 2; i < 14; ++i) {
       final var res = 1 << i;
       newInstanceMenu.add(this.makeInternalFrameCreatorMenuItem(deskPane, preferredFrameSize, res));
     }

@@ -19,6 +19,7 @@ public class WorldUI extends JPanel implements Drawable<BitSet> {
   private boolean disposed;
 
   public WorldUI(final Settings settings) {
+    System.out.println("new WorldUI");
     this.logWorldWidth = Utils.log2(settings.worldWidth());
     this.worldWidthMinusOne = settings.worldWidth() - 1;
     this.worldSize = settings.worldWidth() * settings.worldHeight();
@@ -76,6 +77,7 @@ public class WorldUI extends JPanel implements Drawable<BitSet> {
   public void draw() {
     final var g = this.getGraphics();
     if (g == null) {
+      System.out.println("no graphics");
       return;
     }
     this.draw(g);
