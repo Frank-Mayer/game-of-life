@@ -20,7 +20,7 @@ import javax.swing.JSlider;
 /**
  * The main game panel.
  *
- * <p>This class encapsulates a Game of Life. Indipendent of the Window management.
+ * <p>This class encapsulates a Game of Life. Independent of the Window management.
  */
 public class GamePanel extends JPanel implements Disposable {
 
