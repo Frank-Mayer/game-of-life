@@ -3,11 +3,11 @@ package de.hhn.gameoflife;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
-import java.util.BitSet;
+import java.util.Set;
 import javax.swing.JPanel;
 
 /** component to render the world */
-public class WorldUI extends JPanel implements Drawable<BitSet> {
+public class WorldUI extends JPanel implements Drawable<Set<Integer>> {
 
   private final int worldSize;
   private final int logWorldWidth;
@@ -15,7 +15,7 @@ public class WorldUI extends JPanel implements Drawable<BitSet> {
   private final BufferedImage buffer;
   private int colorAlive = 0xFFFFFF;
   private int colorDead = 0x000000;
-  private BitSet worldData;
+  private Set<Integer> worldData;
   private boolean disposed;
 
   public WorldUI(final Settings settings) {
@@ -67,7 +67,7 @@ public class WorldUI extends JPanel implements Drawable<BitSet> {
   }
 
   /** draw the given worlds state */
-  public void draw(final BitSet newData) {
+  public void draw(final Set<Integer> newData) {
     this.worldData = newData;
     this.draw();
   }
@@ -93,7 +93,7 @@ public class WorldUI extends JPanel implements Drawable<BitSet> {
     for (i = 0; i < this.worldSize; ++i) {
       x = i & this.worldWidthMinusOne; // x = i % this.worldWidth;
       y = i >> this.logWorldWidth; // i / this.worldWidth;
-      this.buffer.setRGB(x, y, this.worldData.get(i) ? this.colorAlive : this.colorDead);
+      this.buffer.setRGB(x, y, this.worldData.contains(i) ? this.colorAlive : this.colorDead);
     }
     g.drawImage(this.buffer, 0, 0, this.getWidth(), this.getHeight(), null);
   }

@@ -1,8 +1,9 @@
 package de.hhn.gameoflife;
 
 import java.awt.image.BufferedImage;
-import java.util.BitSet;
+import java.util.HashSet;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -10,7 +11,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 public class World {
-  private final Drawable<BitSet> ui;
+  private final Drawable<Set<Integer>> ui;
   private final TPS tps;
   private final int worldWidth;
   private final int worldHeight;
@@ -19,8 +20,8 @@ public class World {
   private final int worldHeightMinusOne;
   private final int worldWidthMinusOne;
   private final int logWorldWidth;
-  private BitSet worldDataA;
-  private BitSet worldDataB;
+  private Set<Integer> worldDataA;
+  private Set<Integer> worldDataB;
   private boolean paused = true;
   private final ScheduledExecutorService sheduler = Executors.newSingleThreadScheduledExecutor();
   private Runnable[] calcTickParts;
@@ -30,7 +31,7 @@ public class World {
 
   public World(
       final Settings settings,
-      final Drawable<BitSet> ui,
+      final Drawable<Set<Integer>> ui,
       final Random rand,
       final TPS tps,
       final Semaphore worldDataSem) {
@@ -43,13 +44,15 @@ public class World {
     this.worldHeightMinusOne = this.worldHeight - 1;
     this.worldWidthMinusOne = this.worldWidth - 1;
     this.logWorldWidth = Utils.log2(this.worldWidth);
-    this.worldDataA = new BitSet(this.worldSize);
-    this.worldDataB = new BitSet(this.worldSize);
+    this.worldDataA = new HashSet<Integer>(this.worldSize);
+    this.worldDataB = new HashSet<Integer>(this.worldSize);
     for (var i = 0; i < this.worldSize; ++i) {
       // randomly decide if the cell is alive or dead
       final var alive = rand.nextBoolean();
-      this.worldDataA.set(i, alive);
-      this.worldDataB.set(i, alive);
+      if (alive) {
+        this.worldDataA.add(i);
+        this.worldDataB.add(i);
+      }
     }
     this.ui.draw(this.worldDataA);
 
@@ -87,7 +90,11 @@ public class World {
    */
   public void togglePoint(final int x, final int y, final boolean state) {
     final var index = (y * this.worldWidth) + x;
-    this.worldDataA.set(index, state);
+    if (state) {
+      this.worldDataA.add(index);
+    } else {
+      this.worldDataA.remove(index);
+    }
   }
 
   /**
@@ -99,8 +106,13 @@ public class World {
    */
   public boolean togglePoint(final int x, final int y) {
     final var index = (y * this.worldWidth) + x;
-    this.worldDataA.flip(index);
-    return this.worldDataA.get(index);
+    if (this.worldDataA.contains(index)) {
+      this.worldDataA.remove(index);
+      return false;
+    } else {
+      this.worldDataA.add(index);
+      return true;
+    }
   }
 
   /** calculate next generation */
@@ -148,16 +160,20 @@ public class World {
 
         // count the living neighbors
         livingNeighbors = 0;
-        alive = this.worldDataA.get(i);
+        alive = this.worldDataA.contains(i);
         for (int j = 0; j < 8; ++j) {
           neighborIndex = neighborsIndexes[j];
-          if (this.worldDataA.get(neighborIndex)) {
+          if (this.worldDataA.contains(neighborIndex)) {
             ++livingNeighbors;
           }
         }
 
         // alive1 = alive0 ? (2 or 3 neighbors) : (3 neighbors)
-        this.worldDataB.set(i++, livingNeighbors == 3 || alive && livingNeighbors == 2);
+        if (livingNeighbors == 3 || alive && livingNeighbors == 2) {
+          this.worldDataB.add(i++);
+        } else {
+          this.worldDataB.remove(i++);
+        }
         xMinusOne = x;
         x = xPlusOne;
         xPlusOne = x + 1;
@@ -192,15 +208,15 @@ public class World {
     this.paused = wasPaused;
   }
 
-  public void overwriteWorldData(final BitSet in) {
+  public void overwriteWorldData(final Set<Integer> in) {
     final var wasPaused = this.paused;
     this.paused = true;
     try {
       this.worldDataSem.acquire();
       this.worldDataA.clear();
-      this.worldDataA.or(in);
+      this.worldDataA.addAll(in);
       this.worldDataB.clear();
-      this.worldDataB.or(in);
+      this.worldDataB.addAll(in);
       this.ui.draw(this.worldDataA);
     } catch (final InterruptedException e) {
       e.printStackTrace();
@@ -218,7 +234,7 @@ public class World {
     return this.minTickTime;
   }
 
-  public BitSet getWorldData() {
+  public Set<Integer> getWorldData() {
     return this.worldDataA;
   }
 
@@ -254,14 +270,16 @@ public class World {
         final var pixel = resized.getRGB(x, y);
         final var redChannel = (pixel >> 16) & 0xFF;
         final var index = y * this.worldWidth + x;
-        this.worldDataA.set(index, redChannel > 127);
+        if (redChannel > 127) {
+          this.worldDataA.add(index);
+        }
       }
     }
     this.ui.draw(this.worldDataA);
     this.paused = wasPaused;
   }
 
-  public BitSet getWorldDataB() {
+  public Set<Integer> getWorldDataB() {
     return this.worldDataB;
   }
 

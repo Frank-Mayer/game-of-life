@@ -1,6 +1,7 @@
 package de.hhn.gameoflife;
 
-import java.util.BitSet;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.Stack;
 import java.util.concurrent.Semaphore;
 import javax.swing.JInternalFrame;
@@ -11,7 +12,7 @@ import javax.swing.SwingUtilities;
 public class TestWindow extends JInternalFrame implements Disposable {
 
   private final World world;
-  private final Stack<BitSet> testsIn = new Stack<>();
+  private final Stack<Set<Integer>> testsIn = new Stack<>();
   private final Stack<Boolean> testsOut = new Stack<>();
   private final int testOutIndex = 5;
   private final DIContainer diContainer = new DIContainer();
@@ -25,8 +26,8 @@ public class TestWindow extends JInternalFrame implements Disposable {
     diContainer.addSingleton(new Settings(4, 4));
     diContainer.addSingleton(World.class);
     diContainer.addSingleton(
-        new Drawable<BitSet>() {
-          public void draw(final BitSet ignore) {
+        new Drawable<Set<Integer>>() {
+          public void draw(final Set<Integer> ignore) {
             // do nothing
           }
         });
@@ -36,60 +37,57 @@ public class TestWindow extends JInternalFrame implements Disposable {
 
     {
       // input
-      final var in = new BitSet(16);
+      final var in = new HashSet<Integer>(16);
       this.testsIn.push(in);
       // 0000
       // 1000
       // 0110
       // 0000
-      in.set(0, 4, false);
-      in.set(4, true);
-      in.set(5, 9, false);
-      in.set(9, true);
-      in.set(10, true);
-      in.set(11, 16, false);
+      in.add(4);
+      in.add(9);
+      in.add(10);
       // expected output
       this.testsOut.push(true);
     }
     {
       // input
-      final var in = new BitSet(16);
+      final var in = new HashSet<Integer>(16);
       this.testsIn.push(in);
       // 0000
       // 0100
       // 0010
       // 0000
-      in.set(5);
-      in.set(10);
+      in.add(5);
+      in.add(10);
       // expected output
       this.testsOut.push(false);
     }
     {
-      final var in = new BitSet(16);
+      final var in = new HashSet<Integer>(16);
       this.testsIn.push(in);
       // 0100
       // 1100
       // 0010
       // 0000
-      in.set(1);
-      in.set(4);
-      in.set(5);
-      in.set(10);
+      in.add(1);
+      in.add(4);
+      in.add(5);
+      in.add(10);
       // expected output
       this.testsOut.push(true);
     }
-    final var in = new BitSet(16);
+    final var in = new HashSet<Integer>(16);
     this.testsIn.push(in);
     // 1110
     // 0110
     // 1000
     // 0000
-    in.set(0);
-    in.set(1);
-    in.set(2);
-    in.set(5);
-    in.set(6);
-    in.set(8);
+    in.add(0);
+    in.add(1);
+    in.add(2);
+    in.add(5);
+    in.add(6);
+    in.add(8);
     // expected output
     this.testsOut.push(false);
 
@@ -129,16 +127,16 @@ public class TestWindow extends JInternalFrame implements Disposable {
       final var expectedOut = this.testsOut.pop();
       this.world.overwriteWorldData(in);
       this.world.calcTick();
-      final var realOut = this.world.getWorldDataB().get(this.testOutIndex);
+      final var realOut = this.world.getWorldDataB().contains(this.testOutIndex);
       errTxt.append(
           String.format(
               "<p><b>Test %d: %s</b></p>", i, realOut == expectedOut ? "PASSED" : "FAILED"));
-      errTxt.append(String.format("<p>Input: %s</p>", this.displayBitSet(in)));
+      errTxt.append(String.format("<p>Input: %s</p>", this.displayWorldData(in)));
       errTxt.append(String.format("<p>Expected: %s</p>", expectedOut));
       errTxt.append(
           String.format(
               "<p>Result: %s</p>",
-              realOut != expectedOut ? this.displayBitSet(this.world.getWorldDataB()) : realOut));
+              realOut != expectedOut ? this.displayWorldData(this.world.getWorldDataB()) : realOut));
       ++i;
     }
     errTxt.append("</html>");
@@ -150,7 +148,7 @@ public class TestWindow extends JInternalFrame implements Disposable {
     this.pack();
   }
 
-  private String displayBitSet(final BitSet bs) {
+  private String displayWorldData(final Set<Integer> bs) {
     final var sb = new StringBuilder();
     for (var y = 0; y < 4; ++y) {
       sb.append("<p>");
@@ -158,10 +156,10 @@ public class TestWindow extends JInternalFrame implements Disposable {
         final var i = y * 4 + x;
         if (i == this.testOutIndex) {
           sb.append("<b>");
-          sb.append(bs.get(i) ? '1' : '0');
+          sb.append(bs.contains(i) ? '1' : '0');
           sb.append("</b>");
         } else {
-          sb.append(bs.get(i) ? '1' : '0');
+          sb.append(bs.contains(i) ? '1' : '0');
         }
       }
       sb.append("</p>");
