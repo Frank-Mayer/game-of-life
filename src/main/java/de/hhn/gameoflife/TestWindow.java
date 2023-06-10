@@ -25,11 +25,13 @@ public class TestWindow extends JInternalFrame implements Disposable {
     diContainer.addSingleton(World.class);
     diContainer.addSingleton(
         new Drawable<IntSet>() {
-          public void draw(final IntSet ignore) {
-            // do nothing
-          }
+          public void set(final IntSet data) {}
+
+          public void set(final int index, final boolean alife) {}
+
+          public void draw() {}
         });
-    diContainer.addSingleton(TPS.class);
+    diContainer.addSingleton(FPS.class);
     diContainer.addSingleton(new Semaphore(1));
     this.world = diContainer.get(World.class);
 

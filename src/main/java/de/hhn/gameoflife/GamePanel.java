@@ -26,7 +26,7 @@ public class GamePanel extends JPanel implements Disposable {
 
   private final World world;
   private final WorldUI worldUI;
-  private final TPS tpsLabel;
+  private final FPS fpsLabel;
   private int worldWidth;
   private int worldHeight;
   private final DIContainer diContainer = new DIContainer();
@@ -39,7 +39,7 @@ public class GamePanel extends JPanel implements Disposable {
     this.diContainer.addSingleton(new Settings(width, height));
     this.diContainer.addSingleton(World.class);
     this.diContainer.addSingleton(WorldUI.class);
-    this.diContainer.addSingleton(TPS.class);
+    this.diContainer.addSingleton(FPS.class);
     this.diContainer.addSingleton(this.worldDataSem);
 
     this.worldWidth = width;
@@ -50,9 +50,9 @@ public class GamePanel extends JPanel implements Disposable {
 
     // initialize ui
     this.setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
-    // tick time label
-    this.tpsLabel = this.diContainer.get(TPS.class);
-    this.add(this.tpsLabel);
+    // frame time label
+    this.fpsLabel = this.diContainer.get(FPS.class);
+    this.add(this.fpsLabel);
     // min tick time slider (delay)
     final var minTickTimeLabel =
         new JLabel(String.format("Min Tick Time (%sms)", this.world.getMinTickTime()));
@@ -95,7 +95,6 @@ public class GamePanel extends JPanel implements Disposable {
             } finally {
               GamePanel.this.worldDataSem.release();
             }
-            GamePanel.this.worldUI.draw(GamePanel.this.world.getWorldData());
           }
 
           @Override
@@ -111,7 +110,6 @@ public class GamePanel extends JPanel implements Disposable {
                   GamePanel.this.worldUI.getWidth(), GamePanel.this.worldUI.getHeight());
 
               drawNewState.set(GamePanel.this.togglePoint(e.getPoint()));
-              GamePanel.this.worldUI.draw(GamePanel.this.world.getWorldData());
             } catch (final InterruptedException interruptedException) {
               interruptedException.printStackTrace();
             } finally {
@@ -147,7 +145,6 @@ public class GamePanel extends JPanel implements Disposable {
             }
 
             GamePanel.this.togglePoint(e.getPoint(), drawNewState.get());
-            GamePanel.this.worldUI.draw(GamePanel.this.world.getWorldData());
           }
 
           @Override
@@ -175,6 +172,7 @@ public class GamePanel extends JPanel implements Disposable {
     final var x = (int) (point.x / cellWidth);
     final var y = (int) (point.y / cellHeight);
     this.world.togglePoint(x, y, state);
+    this.worldUI.draw();
   }
 
   /**
@@ -188,7 +186,9 @@ public class GamePanel extends JPanel implements Disposable {
     final var cellHeight = (double) GamePanel.this.worldUI.getHeight() / (double) this.worldHeight;
     final var x = (int) (point.x / cellWidth);
     final var y = (int) (point.y / cellHeight);
-    return this.world.togglePoint(x, y);
+    final var state = this.world.togglePoint(x, y);
+    this.worldUI.draw();
+    return state;
   }
 
   public void togglePoints(final Point point, final Boolean[][] structure) {
@@ -203,6 +203,7 @@ public class GamePanel extends JPanel implements Disposable {
         this.world.togglePoint(x + xStart, y + yStart, state);
       }
     }
+    this.worldUI.draw();
   }
 
   /** free resources */

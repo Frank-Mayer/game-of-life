@@ -10,7 +10,7 @@ import java.util.concurrent.TimeUnit;
 
 public class World {
   private final Drawable<IntSet> ui;
-  private final TPS tps;
+  private final FPS tps;
   private final int worldWidth;
   private final int worldHeight;
   private int minTickTime = 150;
@@ -31,7 +31,7 @@ public class World {
       final Settings settings,
       final Drawable<IntSet> ui,
       final Random rand,
-      final TPS tps,
+      final FPS tps,
       final Semaphore worldDataSem) {
     this.ui = ui;
     this.tps = tps;
@@ -51,7 +51,8 @@ public class World {
         this.worldDataA.add(i);
       }
     }
-    this.ui.draw(this.worldDataA);
+    this.ui.set(this.worldDataA);
+    this.ui.draw();
 
     // how big is the world?
     if (this.worldSize >= 1_048_576) { // 1048576 = 1024 * 1024
@@ -87,6 +88,7 @@ public class World {
    */
   public void togglePoint(final int x, final int y, final boolean state) {
     final var index = (y * this.worldWidth) + x;
+    this.ui.set(index, state);
     if (state) {
       this.worldDataA.add(index);
     } else {
@@ -105,9 +107,11 @@ public class World {
     final var index = (y * this.worldWidth) + x;
     if (this.worldDataA.contains(index)) {
       this.worldDataA.remove(index);
+      this.ui.set(index, false);
       return false;
     } else {
       this.worldDataA.add(index);
+      this.ui.set(index, true);
       return true;
     }
   }
@@ -182,7 +186,8 @@ public class World {
       this.worldDataSem.acquire();
       this.worldDataA.clear();
       this.livingNeighbors.clear();
-      this.ui.draw(this.worldDataA);
+      this.ui.set(this.worldDataA);
+      this.ui.draw();
     } catch (final InterruptedException e) {
       e.printStackTrace();
     } finally {
@@ -198,7 +203,8 @@ public class World {
       this.worldDataSem.acquire();
       this.worldDataA.clear();
       this.worldDataA.addAll(in);
-      this.ui.draw(this.worldDataA);
+      this.ui.set(this.worldDataA);
+      this.ui.draw();
     } catch (final InterruptedException e) {
       e.printStackTrace();
     } finally {
@@ -256,7 +262,8 @@ public class World {
         }
       }
     }
-    this.ui.draw(this.worldDataA);
+    this.ui.set(this.worldDataA);
+    this.ui.draw();
     this.paused = wasPaused;
   }
 
@@ -274,16 +281,20 @@ public class World {
         if (alive) {
           if (count < 2 || count > 3) {
             this.worldDataA.remove(i);
+            this.ui.set(i, false);
           }
         } else {
           if (count == 3) {
             this.worldDataA.add(i);
+            this.ui.set(i, true);
           }
         }
       } else {
         this.worldDataA.remove(i);
+        this.ui.set(i, false);
       }
     }
+    this.ui.draw();
     this.livingNeighbors.clear();
   }
 
@@ -318,9 +329,6 @@ public class World {
     } finally {
       this.worldDataSem.release();
     }
-
-    // pass the new generation to the UI
-    this.ui.draw(this.worldDataA);
   }
 
   /** Trigger tick (next generation) asynchronously */
@@ -365,8 +373,5 @@ public class World {
     } finally {
       this.worldDataSem.release();
     }
-
-    // pass the new generation to the UI
-    this.ui.draw(this.worldDataA);
   }
 }
