@@ -1,7 +1,6 @@
 package de.hhn.gameoflife;
 
 import java.awt.image.BufferedImage;
-import java.util.BitSet;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
@@ -10,8 +9,8 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 public class World {
-  private final Drawable<BitSet> ui;
-  private final TPS tps;
+  private final Drawable<IntSet> ui;
+  private final FPS tps;
   private final int worldWidth;
   private final int worldHeight;
   private int minTickTime = 150;
@@ -19,8 +18,8 @@ public class World {
   private final int worldHeightMinusOne;
   private final int worldWidthMinusOne;
   private final int logWorldWidth;
-  private BitSet worldDataA;
-  private BitSet worldDataB;
+  private IntSet worldDataA;
+  private final IntMap livingNeighbors;
   private boolean paused = true;
   private final ScheduledExecutorService sheduler = Executors.newSingleThreadScheduledExecutor();
   private Runnable[] calcTickParts;
@@ -30,9 +29,9 @@ public class World {
 
   public World(
       final Settings settings,
-      final Drawable<BitSet> ui,
+      final Drawable<IntSet> ui,
       final Random rand,
-      final TPS tps,
+      final FPS tps,
       final Semaphore worldDataSem) {
     this.ui = ui;
     this.tps = tps;
@@ -43,15 +42,17 @@ public class World {
     this.worldHeightMinusOne = this.worldHeight - 1;
     this.worldWidthMinusOne = this.worldWidth - 1;
     this.logWorldWidth = Utils.log2(this.worldWidth);
-    this.worldDataA = new BitSet(this.worldSize);
-    this.worldDataB = new BitSet(this.worldSize);
+    this.worldDataA = new IntSet(this.worldSize);
+    this.livingNeighbors = new IntMap(this.worldSize);
     for (var i = 0; i < this.worldSize; ++i) {
       // randomly decide if the cell is alive or dead
       final var alive = rand.nextBoolean();
-      this.worldDataA.set(i, alive);
-      this.worldDataB.set(i, alive);
+      if (alive) {
+        this.worldDataA.add(i);
+      }
     }
-    this.ui.draw(this.worldDataA);
+    this.ui.set(this.worldDataA);
+    this.ui.draw();
 
     // how big is the world?
     if (this.worldSize >= 1_048_576) { // 1048576 = 1024 * 1024
@@ -87,7 +88,12 @@ public class World {
    */
   public void togglePoint(final int x, final int y, final boolean state) {
     final var index = (y * this.worldWidth) + x;
-    this.worldDataA.set(index, state);
+    this.ui.set(index, state);
+    if (state) {
+      this.worldDataA.add(index);
+    } else {
+      this.worldDataA.remove(index);
+    }
   }
 
   /**
@@ -99,13 +105,20 @@ public class World {
    */
   public boolean togglePoint(final int x, final int y) {
     final var index = (y * this.worldWidth) + x;
-    this.worldDataA.flip(index);
-    return this.worldDataA.get(index);
+    if (this.worldDataA.contains(index)) {
+      this.worldDataA.remove(index);
+      this.ui.set(index, false);
+      return false;
+    } else {
+      this.worldDataA.add(index);
+      this.ui.set(index, true);
+      return true;
+    }
   }
 
   /** calculate next generation */
   public void calcTick() {
-    calcTick(0, this.worldSize);
+    this.calcTick(0, this.worldSize);
   }
 
   /** calculate next generation */
@@ -118,49 +131,39 @@ public class World {
     int yPlusOne = y + 1;
     int yMinusOne = y - 1;
     int i = start;
-    final int neighborsIndexes[] = new int[8];
-    int livingNeighbors;
-    int neighborIndex;
-    boolean alive;
 
     // iterate over all cells
     while (y < worldHeight && i < end) {
       while (x < worldWidth) {
-        // calculate the indexes of the neighbors for a torus world
-        neighborsIndexes[0] =
-            (((yMinusOne + this.worldHeight) & this.worldHeightMinusOne) << this.logWorldWidth)
-                + ((xMinusOne + this.worldWidth) & this.worldWidthMinusOne);
-        neighborsIndexes[1] =
-            (((yMinusOne + this.worldHeight) & this.worldHeightMinusOne) << this.logWorldWidth) + x;
-        neighborsIndexes[2] =
-            (((yMinusOne + this.worldHeight) & this.worldHeightMinusOne) << this.logWorldWidth)
-                + ((xPlusOne) & this.worldWidthMinusOne);
-        neighborsIndexes[3] =
-            (y << this.logWorldWidth) + ((xMinusOne + this.worldWidth) & this.worldWidthMinusOne);
-        neighborsIndexes[4] = (y << this.logWorldWidth) + ((xPlusOne) & this.worldWidthMinusOne);
-        neighborsIndexes[5] =
-            (((yPlusOne) & this.worldHeightMinusOne) << this.logWorldWidth)
-                + ((xMinusOne + this.worldWidth) & this.worldWidthMinusOne);
-        neighborsIndexes[6] = (((yPlusOne) & this.worldHeightMinusOne) << this.logWorldWidth) + x;
-        neighborsIndexes[7] =
-            (((yPlusOne) & this.worldHeightMinusOne) << this.logWorldWidth)
-                + ((xPlusOne) & this.worldWidthMinusOne);
-
-        // count the living neighbors
-        livingNeighbors = 0;
-        alive = this.worldDataA.get(i);
-        for (int j = 0; j < 8; ++j) {
-          neighborIndex = neighborsIndexes[j];
-          if (this.worldDataA.get(neighborIndex)) {
-            ++livingNeighbors;
-          }
+        if (this.worldDataA.contains(i)) {
+          // calculate the indexes of the neighbors for a torus world
+          this.livingNeighbors.increment(
+              (((yMinusOne + this.worldHeight) & this.worldHeightMinusOne) << this.logWorldWidth)
+                  + ((xMinusOne + this.worldWidth) & this.worldWidthMinusOne));
+          this.livingNeighbors.increment(
+              (((yMinusOne + this.worldHeight) & this.worldHeightMinusOne) << this.logWorldWidth)
+                  + x);
+          this.livingNeighbors.increment(
+              (((yMinusOne + this.worldHeight) & this.worldHeightMinusOne) << this.logWorldWidth)
+                  + ((xPlusOne) & this.worldWidthMinusOne));
+          this.livingNeighbors.increment(
+              (y << this.logWorldWidth)
+                  + ((xMinusOne + this.worldWidth) & this.worldWidthMinusOne));
+          this.livingNeighbors.increment(
+              (y << this.logWorldWidth) + ((xPlusOne) & this.worldWidthMinusOne));
+          this.livingNeighbors.increment(
+              (((yPlusOne) & this.worldHeightMinusOne) << this.logWorldWidth)
+                  + ((xMinusOne + this.worldWidth) & this.worldWidthMinusOne));
+          this.livingNeighbors.increment(
+              (((yPlusOne) & this.worldHeightMinusOne) << this.logWorldWidth) + x);
+          this.livingNeighbors.increment(
+              (((yPlusOne) & this.worldHeightMinusOne) << this.logWorldWidth)
+                  + ((xPlusOne) & this.worldWidthMinusOne));
         }
-
-        // alive1 = alive0 ? (2 or 3 neighbors) : (3 neighbors)
-        this.worldDataB.set(i++, livingNeighbors == 3 || alive && livingNeighbors == 2);
         xMinusOne = x;
         x = xPlusOne;
         xPlusOne = x + 1;
+        ++i;
       }
       yMinusOne = y;
       y = yPlusOne;
@@ -182,8 +185,9 @@ public class World {
     try {
       this.worldDataSem.acquire();
       this.worldDataA.clear();
-      this.worldDataB.clear();
-      this.ui.draw(this.worldDataA);
+      this.livingNeighbors.clear();
+      this.ui.set(this.worldDataA);
+      this.ui.draw();
     } catch (final InterruptedException e) {
       e.printStackTrace();
     } finally {
@@ -192,16 +196,14 @@ public class World {
     this.paused = wasPaused;
   }
 
-  public void overwriteWorldData(final BitSet in) {
+  public void overwriteWorldData(final IntSet in) {
     final var wasPaused = this.paused;
     this.paused = true;
     try {
       this.worldDataSem.acquire();
-      this.worldDataA.clear();
-      this.worldDataA.or(in);
-      this.worldDataB.clear();
-      this.worldDataB.or(in);
-      this.ui.draw(this.worldDataA);
+      this.worldDataA.overwrite(in);
+      this.ui.set(this.worldDataA);
+      this.ui.draw();
     } catch (final InterruptedException e) {
       e.printStackTrace();
     } finally {
@@ -218,7 +220,7 @@ public class World {
     return this.minTickTime;
   }
 
-  public BitSet getWorldData() {
+  public IntSet getWorldData() {
     return this.worldDataA;
   }
 
@@ -242,7 +244,7 @@ public class World {
       System.err.println("Interrupted while waiting for sheduler to terminate");
     } finally {
       this.worldDataA = null;
-      this.worldDataB = null;
+      this.livingNeighbors.clear();
     }
   }
 
@@ -254,15 +256,45 @@ public class World {
         final var pixel = resized.getRGB(x, y);
         final var redChannel = (pixel >> 16) & 0xFF;
         final var index = y * this.worldWidth + x;
-        this.worldDataA.set(index, redChannel > 127);
+        if (redChannel > 127) {
+          this.worldDataA.add(index);
+        }
       }
     }
-    this.ui.draw(this.worldDataA);
+    this.ui.set(this.worldDataA);
+    this.ui.draw();
     this.paused = wasPaused;
   }
 
-  public BitSet getWorldDataB() {
-    return this.worldDataB;
+  public IntSet getWorldDataA() {
+    return this.worldDataA;
+  }
+
+  private void applyLivingNeighborCount() {
+    boolean alive;
+    int count;
+    for (var i = 0; i < this.worldSize; ++i) {
+      if (this.livingNeighbors.containsKey(i)) {
+        count = this.livingNeighbors.get(i);
+        alive = this.worldDataA.contains(i);
+        if (alive) {
+          if (count < 2 || count > 3) {
+            this.worldDataA.remove(i);
+            this.ui.set(i, false);
+          }
+        } else {
+          if (count == 3) {
+            this.worldDataA.add(i);
+            this.ui.set(i, true);
+          }
+        }
+      } else {
+        this.worldDataA.remove(i);
+        this.ui.set(i, false);
+      }
+    }
+    this.ui.draw();
+    this.livingNeighbors.clear();
   }
 
   /** Trigger tick (next generation) synchronously */
@@ -272,46 +304,35 @@ public class World {
       return;
     }
 
+    long tickTime;
+
     try {
       this.worldDataSem.acquire();
       // save start time
       final var start = System.nanoTime();
 
       // calculate next generation
-      calcTick(0, this.worldSize);
+      this.calcTick(0, this.worldSize);
+      this.applyLivingNeighborCount();
 
       // calculate time spend for this tick
-      final var tickTime = System.nanoTime() - start;
+      tickTime = System.nanoTime() - start;
       this.tps.add(tickTime);
 
-      // sleep if the tick was too fast
-      final var sleepTime = this.minTickTime - tickTime / 1000000L;
-      if (sleepTime > 0L) {
-        try {
-          Thread.sleep(sleepTime);
-        } catch (final InterruptedException e) {
-          // swap the world data a and b; a stays primary
-          final var tmp = this.worldDataA;
-          this.worldDataA = this.worldDataB;
-          this.worldDataB = tmp;
-
-          return;
-        }
-      }
-
-      // swap the world data a and b; a stays primary
-      final var tmp = this.worldDataA;
-      this.worldDataA = this.worldDataB;
-      this.worldDataB = tmp;
     } catch (final InterruptedException e) {
-      // ignore
       return;
     } finally {
       this.worldDataSem.release();
     }
-
-    // pass the new generation to the UI
-    this.ui.draw(this.worldDataA);
+    // sleep if the tick was too fast
+    final var sleepTime = this.minTickTime - tickTime / 1000000L;
+    if (sleepTime > 0L) {
+      try {
+        Thread.sleep(sleepTime);
+      } catch (final InterruptedException e) {
+        return;
+      }
+    }
   }
 
   /** Trigger tick (next generation) asynchronously */
@@ -320,6 +341,8 @@ public class World {
     if (this.paused) {
       return;
     }
+
+    long tickTime;
 
     try {
       this.worldDataSem.acquire();
@@ -335,34 +358,15 @@ public class World {
       final CompletableFuture<Void> allDoneFuture = CompletableFuture.allOf(calcTickPartsFutures);
       try {
         allDoneFuture.get();
+        this.applyLivingNeighborCount();
       } catch (final Exception e) {
         // ignore
         return;
       }
 
       // calculate time spend for this tick
-      final var tickTime = System.nanoTime() - start;
+      tickTime = System.nanoTime() - start;
       this.tps.add(tickTime);
-
-      // sleep if the tick was too fast
-      final var sleepTime = this.minTickTime - tickTime / 1000000L;
-      if (sleepTime > 0L) {
-        try {
-          Thread.sleep(sleepTime);
-        } catch (final InterruptedException e) {
-          // swap the world data a and b; a stays primary
-          final var tmp = this.worldDataA;
-          this.worldDataA = this.worldDataB;
-          this.worldDataB = tmp;
-
-          return;
-        }
-      }
-
-      // swap the world data a and b; a stays primary
-      final var tmp = this.worldDataA;
-      this.worldDataA = this.worldDataB;
-      this.worldDataB = tmp;
     } catch (final InterruptedException e) {
       // ignore
       return;
@@ -370,7 +374,15 @@ public class World {
       this.worldDataSem.release();
     }
 
-    // pass the new generation to the UI
-    this.ui.draw(this.worldDataA);
+    // sleep if the tick was too fast
+    final var sleepTime = this.minTickTime - tickTime / 1000000L;
+    if (sleepTime > 0L) {
+      try {
+        Thread.sleep(sleepTime);
+      } catch (final InterruptedException e) {
+        // ignore
+        return;
+      }
+    }
   }
 }
