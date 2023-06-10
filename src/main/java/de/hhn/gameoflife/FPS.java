@@ -5,7 +5,11 @@ import javax.swing.JLabel;
 /** component to render the current tick time */
 public class FPS extends JLabel {
 
-  private final double[] timings = new double[32];
+  private static final int SIZE = 32;
+  private static final int SIZE_MINUS_ONE = FPS.SIZE - 1;
+  private static final double DIV = FPS.SIZE * 1_000_000d;
+
+  private final double[] timings = new double[FPS.SIZE];
   private int index = 0;
 
   public FPS() {
@@ -15,7 +19,7 @@ public class FPS extends JLabel {
   /** add a new timing in nanoseconds */
   public void add(final double time) {
     this.timings[this.index] = time;
-    if (this.index == 31) { // if (this.index == this.timings.length - 1) {
+    if (this.index == FPS.SIZE_MINUS_ONE) {
       this.index = 0;
       this.setText(String.format("%.2f FPS", this.get()));
     } else {
@@ -29,7 +33,7 @@ public class FPS extends JLabel {
     for (final double timing : this.timings) {
       sum += timing;
     }
-    final double avgFrameTime = sum / 32000000d; // sum / (this.timings.length * 1000000d);
-    return 1000d / avgFrameTime;
+    final double avgFrameTime = sum / FPS.DIV;
+    return 1_000d / avgFrameTime;
   }
 }

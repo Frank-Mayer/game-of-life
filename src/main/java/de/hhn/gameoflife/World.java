@@ -201,8 +201,7 @@ public class World {
     this.paused = true;
     try {
       this.worldDataSem.acquire();
-      this.worldDataA.clear();
-      this.worldDataA.addAll(in);
+      this.worldDataA.overwrite(in);
       this.ui.set(this.worldDataA);
       this.ui.draw();
     } catch (final InterruptedException e) {
