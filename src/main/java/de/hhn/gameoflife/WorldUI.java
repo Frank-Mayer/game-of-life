@@ -7,7 +7,7 @@ import java.util.Set;
 import javax.swing.JPanel;
 
 /** component to render the world */
-public class WorldUI extends JPanel implements Drawable<Set<Integer>> {
+public class WorldUI extends JPanel implements Drawable<IntSet> {
 
   private final int worldSize;
   private final int logWorldWidth;
@@ -15,7 +15,7 @@ public class WorldUI extends JPanel implements Drawable<Set<Integer>> {
   private final BufferedImage buffer;
   private int colorAlive = 0xFFFFFF;
   private int colorDead = 0x000000;
-  private Set<Integer> worldData;
+  private IntSet worldData;
   private boolean disposed;
 
   public WorldUI(final Settings settings) {
@@ -67,7 +67,7 @@ public class WorldUI extends JPanel implements Drawable<Set<Integer>> {
   }
 
   /** draw the given worlds state */
-  public void draw(final Set<Integer> newData) {
+  public void draw(final IntSet newData) {
     this.worldData = newData;
     this.draw();
   }

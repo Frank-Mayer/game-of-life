@@ -1,11 +1,7 @@
 package de.hhn.gameoflife;
 
 import java.awt.image.BufferedImage;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
 import java.util.Random;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -13,7 +9,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 public class World {
-  private final Drawable<Set<Integer>> ui;
+  private final Drawable<IntSet> ui;
   private final TPS tps;
   private final int worldWidth;
   private final int worldHeight;
@@ -22,8 +18,8 @@ public class World {
   private final int worldHeightMinusOne;
   private final int worldWidthMinusOne;
   private final int logWorldWidth;
-  private Set<Integer> worldDataA;
-  private final Map<Integer, Integer> livingNeighbors;
+  private IntSet worldDataA;
+  private final IntMap livingNeighbors;
   private boolean paused = true;
   private final ScheduledExecutorService sheduler = Executors.newSingleThreadScheduledExecutor();
   private Runnable[] calcTickParts;
@@ -33,7 +29,7 @@ public class World {
 
   public World(
       final Settings settings,
-      final Drawable<Set<Integer>> ui,
+      final Drawable<IntSet> ui,
       final Random rand,
       final TPS tps,
       final Semaphore worldDataSem) {
@@ -46,8 +42,8 @@ public class World {
     this.worldHeightMinusOne = this.worldHeight - 1;
     this.worldWidthMinusOne = this.worldWidth - 1;
     this.logWorldWidth = Utils.log2(this.worldWidth);
-    this.worldDataA = new HashSet<>(this.worldSize >> 1);
-    this.livingNeighbors = new HashMap<>(this.worldSize >> 1);
+    this.worldDataA = new IntSet(this.worldSize >> 1);
+    this.livingNeighbors = new IntMap(this.worldSize >> 1);
     for (var i = 0; i < this.worldSize; ++i) {
       // randomly decide if the cell is alive or dead
       final var alive = rand.nextBoolean();
@@ -137,24 +133,24 @@ public class World {
       while (x < worldWidth) {
         if (this.worldDataA.contains(i)) {
           // calculate the indexes of the neighbors for a torus world
-          this.addNeighbor(
+          this.livingNeighbors.increment(
               (((yMinusOne + this.worldHeight) & this.worldHeightMinusOne) << this.logWorldWidth)
                   + ((xMinusOne + this.worldWidth) & this.worldWidthMinusOne));
-          this.addNeighbor(
+          this.livingNeighbors.increment(
               (((yMinusOne + this.worldHeight) & this.worldHeightMinusOne) << this.logWorldWidth)
                   + x);
-          this.addNeighbor(
+          this.livingNeighbors.increment(
               (((yMinusOne + this.worldHeight) & this.worldHeightMinusOne) << this.logWorldWidth)
                   + ((xPlusOne) & this.worldWidthMinusOne));
-          this.addNeighbor(
+          this.livingNeighbors.increment(
               (y << this.logWorldWidth)
                   + ((xMinusOne + this.worldWidth) & this.worldWidthMinusOne));
-          this.addNeighbor((y << this.logWorldWidth) + ((xPlusOne) & this.worldWidthMinusOne));
-          this.addNeighbor(
+          this.livingNeighbors.increment((y << this.logWorldWidth) + ((xPlusOne) & this.worldWidthMinusOne));
+          this.livingNeighbors.increment(
               (((yPlusOne) & this.worldHeightMinusOne) << this.logWorldWidth)
                   + ((xMinusOne + this.worldWidth) & this.worldWidthMinusOne));
-          this.addNeighbor((((yPlusOne) & this.worldHeightMinusOne) << this.logWorldWidth) + x);
-          this.addNeighbor(
+          this.livingNeighbors.increment((((yPlusOne) & this.worldHeightMinusOne) << this.logWorldWidth) + x);
+          this.livingNeighbors.increment(
               (((yPlusOne) & this.worldHeightMinusOne) << this.logWorldWidth)
                   + ((xPlusOne) & this.worldWidthMinusOne));
         }
@@ -193,7 +189,7 @@ public class World {
     this.paused = wasPaused;
   }
 
-  public void overwriteWorldData(final Set<Integer> in) {
+  public void overwriteWorldData(final IntSet in) {
     final var wasPaused = this.paused;
     this.paused = true;
     try {
@@ -217,7 +213,7 @@ public class World {
     return this.minTickTime;
   }
 
-  public Set<Integer> getWorldData() {
+  public IntSet getWorldData() {
     return this.worldDataA;
   }
 
@@ -262,28 +258,23 @@ public class World {
     this.paused = wasPaused;
   }
 
-  public Set<Integer> getWorldDataA() {
+  public IntSet getWorldDataA() {
     return this.worldDataA;
-  }
-
-  private void addNeighbor(final int index) {
-    final var count = this.livingNeighbors.getOrDefault(index, 0);
-    this.livingNeighbors.put(index, count + 1);
   }
 
   private void applyLivingNeighborCount() {
     boolean alive;
-    int livingNeighbors;
+    int count;
     for (var i = 0; i < this.worldSize; ++i) {
       if (this.livingNeighbors.containsKey(i)) {
-        livingNeighbors = this.livingNeighbors.get(i);
+        count = this.livingNeighbors.get(i);
         alive = this.worldDataA.contains(i);
         if (alive) {
-          if (livingNeighbors < 2 || livingNeighbors > 3) {
+          if (count < 2 || count > 3) {
             this.worldDataA.remove(i);
           }
         } else {
-          if (livingNeighbors == 3) {
+          if (count == 3) {
             this.worldDataA.add(i);
           }
         }
@@ -320,7 +311,7 @@ public class World {
         Thread.sleep(sleepTime);
       }
     } catch (final InterruptedException e) {
-      // ignore
+      e.printStackTrace();
       return;
     } finally {
       this.worldDataSem.release();

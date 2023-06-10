@@ -12,7 +12,7 @@ import javax.swing.SwingUtilities;
 public class TestWindow extends JInternalFrame implements Disposable {
 
   private final World world;
-  private final Stack<Set<Integer>> testsIn = new Stack<>();
+  private final Stack<IntSet> testsIn = new Stack<>();
   private final Stack<Boolean> testsOut = new Stack<>();
   private final int testOutIndex = 5;
   private final DIContainer diContainer = new DIContainer();
@@ -26,8 +26,8 @@ public class TestWindow extends JInternalFrame implements Disposable {
     diContainer.addSingleton(new Settings(4, 4));
     diContainer.addSingleton(World.class);
     diContainer.addSingleton(
-        new Drawable<Set<Integer>>() {
-          public void draw(final Set<Integer> ignore) {
+        new Drawable<IntSet>() {
+          public void draw(final IntSet ignore) {
             // do nothing
           }
         });
@@ -37,7 +37,7 @@ public class TestWindow extends JInternalFrame implements Disposable {
 
     {
       // input
-      final var in = new HashSet<Integer>(16);
+      final var in = new IntSet(16);
       this.testsIn.push(in);
       // 0000
       // 1000
@@ -51,7 +51,7 @@ public class TestWindow extends JInternalFrame implements Disposable {
     }
     {
       // input
-      final var in = new HashSet<Integer>(16);
+      final var in = new IntSet(16);
       this.testsIn.push(in);
       // 0000
       // 0100
@@ -63,7 +63,7 @@ public class TestWindow extends JInternalFrame implements Disposable {
       this.testsOut.push(false);
     }
     {
-      final var in = new HashSet<Integer>(16);
+      final var in = new IntSet(16);
       this.testsIn.push(in);
       // 0100
       // 1100
@@ -76,7 +76,7 @@ public class TestWindow extends JInternalFrame implements Disposable {
       // expected output
       this.testsOut.push(true);
     }
-    final var in = new HashSet<Integer>(16);
+    final var in = new IntSet(16);
     this.testsIn.push(in);
     // 1110
     // 0110
@@ -148,7 +148,7 @@ public class TestWindow extends JInternalFrame implements Disposable {
     this.pack();
   }
 
-  private String displayWorldData(final Set<Integer> bs) {
+  private String displayWorldData(final IntSet bs) {
     final var sb = new StringBuilder();
     for (var y = 0; y < 4; ++y) {
       sb.append("<p>");
