@@ -305,6 +305,8 @@ public class World {
       return;
     }
 
+    long tickTime;
+
     try {
       this.worldDataSem.acquire();
       // save start time
@@ -315,19 +317,22 @@ public class World {
       this.applyLivingNeighborCount();
 
       // calculate time spend for this tick
-      final var tickTime = System.nanoTime() - start;
+      tickTime = System.nanoTime() - start;
       this.tps.add(tickTime);
 
-      // sleep if the tick was too fast
-      final var sleepTime = this.minTickTime - tickTime / 1000000L;
-      if (sleepTime > 0L) {
-        Thread.sleep(sleepTime);
-      }
     } catch (final InterruptedException e) {
-      e.printStackTrace();
       return;
     } finally {
       this.worldDataSem.release();
+    }
+    // sleep if the tick was too fast
+    final var sleepTime = this.minTickTime - tickTime / 1000000L;
+    if (sleepTime > 0L) {
+      try {
+        Thread.sleep(sleepTime);
+      } catch (final InterruptedException e) {
+        return;
+      }
     }
   }
 
@@ -337,6 +342,8 @@ public class World {
     if (this.paused) {
       return;
     }
+
+    long tickTime;
 
     try {
       this.worldDataSem.acquire();
@@ -359,19 +366,24 @@ public class World {
       }
 
       // calculate time spend for this tick
-      final var tickTime = System.nanoTime() - start;
+      tickTime = System.nanoTime() - start;
       this.tps.add(tickTime);
-
-      // sleep if the tick was too fast
-      final var sleepTime = this.minTickTime - tickTime / 1000000L;
-      if (sleepTime > 0L) {
-        Thread.sleep(sleepTime);
-      }
     } catch (final InterruptedException e) {
       // ignore
       return;
     } finally {
       this.worldDataSem.release();
+    }
+
+    // sleep if the tick was too fast
+    final var sleepTime = this.minTickTime - tickTime / 1000000L;
+    if (sleepTime > 0L) {
+      try {
+        Thread.sleep(sleepTime);
+      } catch (final InterruptedException e) {
+        // ignore
+        return;
+      }
     }
   }
 }
