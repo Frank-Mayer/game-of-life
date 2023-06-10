@@ -42,8 +42,8 @@ public class World {
     this.worldHeightMinusOne = this.worldHeight - 1;
     this.worldWidthMinusOne = this.worldWidth - 1;
     this.logWorldWidth = Utils.log2(this.worldWidth);
-    this.worldDataA = new IntSet(this.worldSize >> 1);
-    this.livingNeighbors = new IntMap(this.worldSize >> 1);
+    this.worldDataA = new IntSet(this.worldSize);
+    this.livingNeighbors = new IntMap(this.worldSize);
     for (var i = 0; i < this.worldSize; ++i) {
       // randomly decide if the cell is alive or dead
       final var alive = rand.nextBoolean();
