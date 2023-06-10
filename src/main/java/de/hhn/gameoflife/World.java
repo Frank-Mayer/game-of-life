@@ -145,11 +145,13 @@ public class World {
           this.livingNeighbors.increment(
               (y << this.logWorldWidth)
                   + ((xMinusOne + this.worldWidth) & this.worldWidthMinusOne));
-          this.livingNeighbors.increment((y << this.logWorldWidth) + ((xPlusOne) & this.worldWidthMinusOne));
+          this.livingNeighbors.increment(
+              (y << this.logWorldWidth) + ((xPlusOne) & this.worldWidthMinusOne));
           this.livingNeighbors.increment(
               (((yPlusOne) & this.worldHeightMinusOne) << this.logWorldWidth)
                   + ((xMinusOne + this.worldWidth) & this.worldWidthMinusOne));
-          this.livingNeighbors.increment((((yPlusOne) & this.worldHeightMinusOne) << this.logWorldWidth) + x);
+          this.livingNeighbors.increment(
+              (((yPlusOne) & this.worldHeightMinusOne) << this.logWorldWidth) + x);
           this.livingNeighbors.increment(
               (((yPlusOne) & this.worldHeightMinusOne) << this.logWorldWidth)
                   + ((xPlusOne) & this.worldWidthMinusOne));

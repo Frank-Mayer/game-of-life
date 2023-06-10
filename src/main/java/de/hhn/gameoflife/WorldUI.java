@@ -3,7 +3,6 @@ package de.hhn.gameoflife;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
-import java.util.Set;
 import javax.swing.JPanel;
 
 /** component to render the world */

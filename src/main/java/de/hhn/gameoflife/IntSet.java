@@ -40,14 +40,6 @@ public class IntSet implements Iterable<Integer> {
     this.set.set(value);
   }
 
-  private void resize(final int newCapacity) {
-    final BitSet newSet =
-        new BitSet((int) Math.pow(2, Math.ceil(Math.log(newCapacity) / Math.log(2))));
-    newSet.or(set);
-    this.set = newSet;
-    this.capacity = newCapacity;
-  }
-
   public void remove(final int value) {
     this.set.clear(value);
   }
@@ -69,16 +61,24 @@ public class IntSet implements Iterable<Integer> {
     return new Iter();
   }
 
-  // public void addAll(final Iterable<? extends Integer> c) {
-  //   for (final Integer i : c) {
-  //     this.add(i);
-  //   }
-  // }
-
   public void addAll(final IntSet s) {
     if (s.capacity > this.capacity) {
       this.resize(s.capacity);
     }
     this.set.or(s.set);
+  }
+
+  // public void addAll(final Iterable<? extends Integer> c) {
+  // for (final Integer i : c) {
+  // this.add(i);
+  // }
+  // }
+
+  private void resize(final int newCapacity) {
+    final BitSet newSet =
+        new BitSet((int) Math.pow(2, Math.ceil(Math.log(newCapacity) / Math.log(2))));
+    newSet.or(set);
+    this.set = newSet;
+    this.capacity = newCapacity;
   }
 }

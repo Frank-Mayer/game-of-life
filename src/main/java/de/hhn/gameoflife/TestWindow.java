@@ -1,7 +1,5 @@
 package de.hhn.gameoflife;
 
-import java.util.HashSet;
-import java.util.Set;
 import java.util.Stack;
 import java.util.concurrent.Semaphore;
 import javax.swing.JInternalFrame;
@@ -136,7 +134,9 @@ public class TestWindow extends JInternalFrame implements Disposable {
       errTxt.append(
           String.format(
               "<p>Result: %s</p>",
-              realOut != expectedOut ? this.displayWorldData(this.world.getWorldDataA()) : realOut));
+              realOut != expectedOut
+                  ? this.displayWorldData(this.world.getWorldDataA())
+                  : realOut));
       ++i;
     }
     errTxt.append("</html>");
