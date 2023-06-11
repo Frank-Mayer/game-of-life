@@ -11,8 +11,13 @@ import java.util.concurrent.Callable;
 
 public class DIContainer implements Disposable {
 
-  private static final int MAX_RELATION_DISTANCE = Integer.MAX_VALUE / 2;
+  /**
+   * Start value for calculating the distance between two classes. Integer.MAX_VALUE ist too big for
+   * the calculation because of the addition of 1.
+   */
+  private static final int MAX_RELATION_DISTANCE = Integer.MAX_VALUE >> 1;
 
+  /** Measure the inheritance distance between two types. */
   private static int getRelationDistance(final Class<?> from, final Class<?> to) {
     if (from == null || to == null) {
       return DIContainer.MAX_RELATION_DISTANCE;
@@ -40,6 +45,7 @@ public class DIContainer implements Disposable {
     return distance;
   }
 
+  /** Check whether the class is a primitive type. */
   private static boolean typeIsPrimitive(final Class<?> clazz) {
     return clazz.isPrimitive()
         || clazz == Boolean.class
@@ -52,18 +58,26 @@ public class DIContainer implements Disposable {
         || clazz == Double.class;
   }
 
+  /** Singleton register with classes that are not yet constructed */
   private final Map<Class<?>, Class<?>> unconstructedSingletons = new HashMap<>();
+
+  /** Singleton register with classes that are already constructed */
   private final Map<Class<?>, Object> constructedSingletons = new HashMap<>();
+
+  /** Transient register */
   private final Set<Class<?>> transients = new HashSet<>();
 
-  private final Map<Class<?>, Callable<Object>> factories = new HashMap<>();
+  /** Factory register */
+  private final Map<Class<?>, Callable<?>> factories = new HashMap<>();
 
+  /** disposed state of the container */
   private boolean disposed = false;
 
   public DIContainer() {
     this.addSingleton(this);
   }
 
+  /** Clean up container and singleton instances */
   public void dispose() {
     if (this.disposed) {
       return;
@@ -78,6 +92,7 @@ public class DIContainer implements Disposable {
     this.factories.clear();
   }
 
+  /** Try to get an object of the given type */
   public <T> T get(final Class<T> clazz) {
     var relationDistance = Integer.MAX_VALUE;
     Callable<Object> getClosestInstance = null;
@@ -175,6 +190,7 @@ public class DIContainer implements Disposable {
     return (T) this.construct(clazz);
   }
 
+  /** Register a class as a singleton */
   public void addSingleton(final Class<?> clazz) {
     this.unconstructedSingletons.put(clazz, clazz);
     this.constructedSingletons.remove(clazz);
@@ -182,6 +198,7 @@ public class DIContainer implements Disposable {
     this.factories.remove(clazz);
   }
 
+  /** Register a class as a singleton with a different type */
   public void addSingleton(final Class<?> clazz, final Class<?> as) {
     if (!as.isAssignableFrom(clazz)) {
       throw new RuntimeException(
@@ -194,11 +211,13 @@ public class DIContainer implements Disposable {
     this.factories.remove(clazz);
   }
 
+  /** Register an instance as a singleton */
   public void addSingleton(final Object instance) {
     final var clazz = instance.getClass();
     this.addSingleton(instance, clazz);
   }
 
+  /** Register an instance as a singleton with a different type */
   public void addSingleton(final Object instance, final Class<?> clazz) {
     this.constructedSingletons.put(clazz, instance);
     this.unconstructedSingletons.remove(clazz);
@@ -206,6 +225,7 @@ public class DIContainer implements Disposable {
     this.factories.remove(clazz);
   }
 
+  /** Register a class as a transient */
   public void addTransient(final Class<?> clazz) {
     this.transients.add(clazz);
     this.unconstructedSingletons.remove(clazz);
@@ -213,13 +233,15 @@ public class DIContainer implements Disposable {
     this.factories.remove(clazz);
   }
 
-  public void addFactory(final Class<?> clazz, final Callable<Object> factory) {
+  /** Register a function as a factory for a class */
+  public <R extends Object> void addFactory(final Class<R> clazz, final Callable<R> factory) {
     this.factories.put(clazz, factory);
     this.unconstructedSingletons.remove(clazz);
     this.constructedSingletons.remove(clazz);
     this.transients.remove(clazz);
   }
 
+  /** Construct an object of a class */
   private Object construct(final Class<?> clazz) {
     final var constr =
         Arrays.stream(clazz.getConstructors())
@@ -246,6 +268,7 @@ public class DIContainer implements Disposable {
     throw new RuntimeException(String.format("Failed to construct \"%s\"", clazz.getName()));
   }
 
+  /** Get the default value of a primitive type */
   private Object getPrimitiveDefault(final Class<?> clazz) {
     switch (clazz.getName()) {
       case "boolean":
