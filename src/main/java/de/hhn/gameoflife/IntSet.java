@@ -54,4 +54,21 @@ public class IntSet implements Iterable<Integer> {
   public void overwrite(IntSet in) {
     this.set = in.set;
   }
+
+  @Override
+  public String toString() {
+    final var sb = new StringBuilder();
+    sb.append('[');
+    var first = true;
+    for (final var i : this) {
+      if (first) {
+        first = false;
+      } else {
+        sb.append(", ");
+      }
+      sb.append(i);
+    }
+    sb.append(']');
+    return sb.toString();
+  }
 }

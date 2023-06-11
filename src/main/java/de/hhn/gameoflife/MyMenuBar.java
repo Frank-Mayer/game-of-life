@@ -170,10 +170,10 @@ public class MyMenuBar extends JMenuBar {
       newInstanceMenu.add(this.makeInternalFrameCreatorMenuItem(deskPane, preferredFrameSize, res));
     }
 
-    final var testMenuItem = new JMenuItem("Test");
+    final var testMenuItem = new JMenuItem("Info");
     testMenuItem.addActionListener(
         e -> {
-          final var inFrame = new TestWindow();
+          final var inFrame = new InfoWindow();
           inFrame.setPreferredSize(preferredFrameSize);
           deskPane.add(inFrame);
         });
