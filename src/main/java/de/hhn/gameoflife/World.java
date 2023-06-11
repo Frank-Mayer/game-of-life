@@ -263,6 +263,9 @@ public class World {
         if (redChannel > 127) {
           this.worldData.add(index);
         }
+        else {
+          this.worldData.remove(index);
+        }
       }
     }
     this.ui.set(this.worldData);
