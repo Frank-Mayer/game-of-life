@@ -12,7 +12,7 @@ public class WorldUI extends JPanel implements Drawable<IntSet> {
   private final int logWorldWidth;
   private final int worldWidthMinusOne;
   private final BufferedImage buffer;
-  private int colorAlive = 0x809080;
+  private int colorAlive = 0xffffff;
   private int colorDead = 0x000000;
   private boolean disposed;
 
@@ -31,7 +31,6 @@ public class WorldUI extends JPanel implements Drawable<IntSet> {
 
   public void setAliveColor(final Color color) {
     this.colorAlive = color.getRGB();
-    this.draw();
   }
 
   public Color getDeadColor() {
@@ -40,7 +39,6 @@ public class WorldUI extends JPanel implements Drawable<IntSet> {
 
   public void setDeadColor(final Color color) {
     this.colorDead = color.getRGB();
-    this.draw();
   }
 
   @Override

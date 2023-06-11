@@ -226,6 +226,8 @@ public class GamePanel extends JPanel implements Disposable {
       return;
     }
     this.worldUI.setAliveColor(color);
+    this.worldUI.set(this.world.getWorldData());
+    this.worldUI.draw();
   }
 
   public Color getDeadColor() {
@@ -240,6 +242,8 @@ public class GamePanel extends JPanel implements Disposable {
       return;
     }
     this.worldUI.setDeadColor(color);
+    this.worldUI.set(this.world.getWorldData());
+    this.worldUI.draw();
   }
 
   /** load world data from an image file */
