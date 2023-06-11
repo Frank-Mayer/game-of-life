@@ -18,7 +18,7 @@ public class World {
   private final int worldHeightMinusOne;
   private final int worldWidthMinusOne;
   private final int logWorldWidth;
-  private IntSet worldDataA;
+  private IntSet worldData;
   private final IntMap livingNeighbors;
   private boolean paused = true;
   private final ScheduledExecutorService sheduler = Executors.newSingleThreadScheduledExecutor();
@@ -42,16 +42,16 @@ public class World {
     this.worldHeightMinusOne = this.worldHeight - 1;
     this.worldWidthMinusOne = this.worldWidth - 1;
     this.logWorldWidth = Utils.log2(this.worldWidth);
-    this.worldDataA = new IntSet(this.worldSize);
+    this.worldData = new IntSet(this.worldSize);
     this.livingNeighbors = new IntMap(this.worldSize);
     for (var i = 0; i < this.worldSize; ++i) {
       // randomly decide if the cell is alive or dead
       final var alive = rand.nextBoolean();
       if (alive) {
-        this.worldDataA.add(i);
+        this.worldData.add(i);
       }
     }
-    this.ui.set(this.worldDataA);
+    this.ui.set(this.worldData);
     this.ui.draw();
 
     // how big is the world?
@@ -90,9 +90,9 @@ public class World {
     final var index = (y * this.worldWidth) + x;
     this.ui.set(index, state);
     if (state) {
-      this.worldDataA.add(index);
+      this.worldData.add(index);
     } else {
-      this.worldDataA.remove(index);
+      this.worldData.remove(index);
     }
   }
 
@@ -105,12 +105,12 @@ public class World {
    */
   public boolean togglePoint(final int x, final int y) {
     final var index = (y * this.worldWidth) + x;
-    if (this.worldDataA.contains(index)) {
-      this.worldDataA.remove(index);
+    if (this.worldData.contains(index)) {
+      this.worldData.remove(index);
       this.ui.set(index, false);
       return false;
     } else {
-      this.worldDataA.add(index);
+      this.worldData.add(index);
       this.ui.set(index, true);
       return true;
     }
@@ -135,7 +135,7 @@ public class World {
     // iterate over all cells
     while (y < worldHeight && i < end) {
       while (x < worldWidth) {
-        if (this.worldDataA.contains(i)) {
+        if (this.worldData.contains(i)) {
           // calculate the indexes of the neighbors for a torus world
           this.livingNeighbors.increment(
               (((yMinusOne + this.worldHeight) & this.worldHeightMinusOne) << this.logWorldWidth)
@@ -174,19 +174,15 @@ public class World {
     }
   }
 
-  public boolean togglePaused() {
-    return this.paused = !this.paused;
-  }
-
   /** clear the world */
   public void clear() {
     final var wasPaused = this.paused;
     this.paused = true;
     try {
       this.worldDataSem.acquire();
-      this.worldDataA.clear();
+      this.worldData.clear();
       this.livingNeighbors.clear();
-      this.ui.set(this.worldDataA);
+      this.ui.set(this.worldData);
       this.ui.draw();
     } catch (final InterruptedException e) {
       e.printStackTrace();
@@ -196,13 +192,14 @@ public class World {
     this.paused = wasPaused;
   }
 
+  /** overwrite the world data with the given data */
   public void overwriteWorldData(final IntSet in) {
     final var wasPaused = this.paused;
     this.paused = true;
     try {
       this.worldDataSem.acquire();
-      this.worldDataA.overwrite(in);
-      this.ui.set(this.worldDataA);
+      this.worldData.overwrite(in);
+      this.ui.set(this.worldData);
       this.ui.draw();
     } catch (final InterruptedException e) {
       e.printStackTrace();
@@ -212,26 +209,32 @@ public class World {
     this.paused = wasPaused;
   }
 
+  /** Set the minimum time for one frame */
   public void setMinTickTime(final int value) {
     this.minTickTime = value;
   }
 
+  /** Get the minimum time for one frame */
   public int getMinTickTime() {
     return this.minTickTime;
   }
 
-  public IntSet getWorldData() {
-    return this.worldDataA;
-  }
-
+  /** Get the games paused state */
   public Boolean getPaused() {
     return this.paused;
   }
 
+  /** Set games paused state to the given value */
   public void setPaused(final boolean paused) {
     this.paused = paused;
   }
 
+  /** Toggle the games paused state */
+  public boolean togglePaused() {
+    return this.paused = !this.paused;
+  }
+
+  /** clean up */
   public void dispose() {
     if (this.disposed) {
       return;
@@ -243,11 +246,12 @@ public class World {
     } catch (final InterruptedException e) {
       System.err.println("Interrupted while waiting for sheduler to terminate");
     } finally {
-      this.worldDataA = null;
+      this.worldData = null;
       this.livingNeighbors.clear();
     }
   }
 
+  /** Import world data from a BufferedImage */
   public void setDataFrom(final BufferedImage resized) {
     final var wasPaused = this.paused;
     this.paused = true;
@@ -257,39 +261,40 @@ public class World {
         final var redChannel = (pixel >> 16) & 0xFF;
         final var index = y * this.worldWidth + x;
         if (redChannel > 127) {
-          this.worldDataA.add(index);
+          this.worldData.add(index);
         }
       }
     }
-    this.ui.set(this.worldDataA);
+    this.ui.set(this.worldData);
     this.ui.draw();
     this.paused = wasPaused;
   }
 
-  public IntSet getWorldDataA() {
-    return this.worldDataA;
+  public IntSet getWorldData() {
+    return this.worldData;
   }
 
+  /** Use collected living neighbor count to apply the rules of the game */
   private void applyLivingNeighborCount() {
     boolean alive;
     int count;
     for (var i = 0; i < this.worldSize; ++i) {
       if (this.livingNeighbors.containsKey(i)) {
         count = this.livingNeighbors.get(i);
-        alive = this.worldDataA.contains(i);
+        alive = this.worldData.contains(i);
         if (alive) {
           if (count < 2 || count > 3) {
-            this.worldDataA.remove(i);
+            this.worldData.remove(i);
             this.ui.set(i, false);
           }
         } else {
           if (count == 3) {
-            this.worldDataA.add(i);
+            this.worldData.add(i);
             this.ui.set(i, true);
           }
         }
       } else {
-        this.worldDataA.remove(i);
+        this.worldData.remove(i);
         this.ui.set(i, false);
       }
     }

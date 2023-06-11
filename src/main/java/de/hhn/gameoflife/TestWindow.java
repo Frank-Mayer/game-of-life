@@ -127,7 +127,7 @@ public class TestWindow extends JInternalFrame implements Disposable {
       final var expectedOut = this.testsOut.pop();
       this.world.overwriteWorldData(in);
       this.world.calcTick();
-      final var realOut = this.world.getWorldDataA().contains(this.testOutIndex);
+      final var realOut = this.world.getWorldData().contains(this.testOutIndex);
       errTxt.append(
           String.format(
               "<p><b>Test %d: %s</b></p>", i, realOut == expectedOut ? "PASSED" : "FAILED"));
@@ -137,7 +137,7 @@ public class TestWindow extends JInternalFrame implements Disposable {
           String.format(
               "<p>Result: %s</p>",
               realOut != expectedOut
-                  ? this.displayWorldData(this.world.getWorldDataA())
+                  ? this.displayWorldData(this.world.getWorldData())
                   : realOut));
       ++i;
     }
