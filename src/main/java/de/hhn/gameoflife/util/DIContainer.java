@@ -1,5 +1,6 @@
-package de.hhn.gameoflife;
+package de.hhn.gameoflife.util;
 
+import de.hhn.gameoflife.control_iface.Disposable;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;

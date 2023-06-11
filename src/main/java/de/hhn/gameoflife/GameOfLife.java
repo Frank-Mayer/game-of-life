@@ -1,5 +1,6 @@
 package de.hhn.gameoflife;
 
+import de.hhn.gameoflife.ui.MyMenuBar;
 import javax.swing.JDesktopPane;
 import javax.swing.JFrame;
 import javax.swing.UIManager;

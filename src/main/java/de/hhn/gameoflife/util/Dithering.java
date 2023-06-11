@@ -1,4 +1,4 @@
-package de.hhn.gameoflife;
+package de.hhn.gameoflife.util;
 
 import java.awt.image.BufferedImage;
 

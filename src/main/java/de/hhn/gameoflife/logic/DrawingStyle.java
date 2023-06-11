@@ -1,4 +1,4 @@
-package de.hhn.gameoflife;
+package de.hhn.gameoflife.logic;
 
 /** Shape drawing styles. */
 public enum DrawingStyle {

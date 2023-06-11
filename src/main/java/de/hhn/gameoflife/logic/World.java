@@ -1,5 +1,10 @@
-package de.hhn.gameoflife;
+package de.hhn.gameoflife.logic;
 
+import de.hhn.gameoflife.control_iface.Drawable;
+import de.hhn.gameoflife.data_structures.IntMap;
+import de.hhn.gameoflife.data_structures.IntSet;
+import de.hhn.gameoflife.ui.FPS;
+import de.hhn.gameoflife.util.Utils;
 import java.awt.image.BufferedImage;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
@@ -262,8 +267,7 @@ public class World {
         final var index = y * this.worldWidth + x;
         if (redChannel > 127) {
           this.worldData.add(index);
-        }
-        else {
+        } else {
           this.worldData.remove(index);
         }
       }

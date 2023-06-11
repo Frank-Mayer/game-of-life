@@ -1,5 +1,9 @@
-package de.hhn.gameoflife;
+package de.hhn.gameoflife.ui;
 
+import de.hhn.gameoflife.control_iface.Drawable;
+import de.hhn.gameoflife.data_structures.IntSet;
+import de.hhn.gameoflife.logic.Settings;
+import de.hhn.gameoflife.util.Utils;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;

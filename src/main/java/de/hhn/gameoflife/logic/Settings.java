@@ -1,4 +1,4 @@
-package de.hhn.gameoflife;
+package de.hhn.gameoflife.logic;
 
 public record Settings(int worldWidth, int worldHeight) {
   public Settings {

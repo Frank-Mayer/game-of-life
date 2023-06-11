@@ -1,4 +1,4 @@
-package de.hhn.gameoflife;
+package de.hhn.gameoflife.data_structures;
 
 import java.util.Arrays;
 

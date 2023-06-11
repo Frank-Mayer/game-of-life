@@ -1,7 +1,13 @@
-package de.hhn.gameoflife;
+package de.hhn.gameoflife.ui;
 
-import static de.hhn.gameoflife.State.useState;
+import static de.hhn.gameoflife.util.State.useState;
 
+import de.hhn.gameoflife.control_iface.Disposable;
+import de.hhn.gameoflife.logic.DrawingStyle;
+import de.hhn.gameoflife.logic.Settings;
+import de.hhn.gameoflife.logic.World;
+import de.hhn.gameoflife.util.DIContainer;
+import de.hhn.gameoflife.util.Dithering;
 import java.awt.Color;
 import java.awt.Point;
 import java.awt.Rectangle;

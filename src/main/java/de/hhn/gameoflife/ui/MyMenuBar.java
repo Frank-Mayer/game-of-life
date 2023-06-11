@@ -1,5 +1,7 @@
-package de.hhn.gameoflife;
+package de.hhn.gameoflife.ui;
 
+import de.hhn.gameoflife.logic.DrawingStyle;
+import de.hhn.gameoflife.logic.DrawingStyleCategory;
 import java.awt.Dimension;
 import java.awt.GraphicsEnvironment;
 import java.util.HashMap;

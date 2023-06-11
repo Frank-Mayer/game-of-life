@@ -1,12 +1,13 @@
-package de.hhn.gameoflife;
+package de.hhn.gameoflife.ui;
 
+import de.hhn.gameoflife.logic.Settings;
 import javax.swing.JLabel;
 
 /** component to render the current frame time */
 public class FPS extends JLabel {
-  private  final int size;
-  private  final int sizeMinusOne;
-  private  final double div;
+  private final int size;
+  private final int sizeMinusOne;
+  private final double div;
   private final double[] timings;
   private int index = 0;
 

@@ -1,4 +1,4 @@
-package de.hhn.gameoflife;
+package de.hhn.gameoflife.util;
 
 public class Utils {
   public static int log2(final Number x) {

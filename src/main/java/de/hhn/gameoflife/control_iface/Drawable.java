@@ -1,4 +1,4 @@
-package de.hhn.gameoflife;
+package de.hhn.gameoflife.control_iface;
 
 /** Interface for objects that need to be drawn */
 public interface Drawable<T> {
