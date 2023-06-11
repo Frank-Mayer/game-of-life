@@ -1,5 +1,10 @@
 package de.hhn.gameoflife;
 
+/**
+ * Shape drawing style categories.
+ *
+ * <p>Only used for the GUI.
+ */
 public enum DrawingStyleCategory {
   STILL_LIFES("Still Lives"),
   OSCILLATORS("Oscillators"),

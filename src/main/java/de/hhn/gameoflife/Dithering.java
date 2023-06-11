@@ -2,6 +2,7 @@ package de.hhn.gameoflife;
 
 import java.awt.image.BufferedImage;
 
+/** Utility class for dithering images. */
 public class Dithering {
   /**
    * Creates a new image that is a grayscale version of the given image.

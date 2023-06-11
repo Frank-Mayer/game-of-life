@@ -1,5 +1,6 @@
 package de.hhn.gameoflife;
 
+/** Shape drawing styles. */
 public enum DrawingStyle {
 
   // Still Lives
