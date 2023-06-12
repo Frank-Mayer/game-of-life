@@ -306,7 +306,6 @@ public class World {
       }
     }
     this.ui.draw();
-    this.livingNeighbors.clear();
   }
 
   /** Trigger tick (next generation) synchronously */
@@ -334,6 +333,7 @@ public class World {
     } catch (final InterruptedException e) {
       return;
     } finally {
+      this.livingNeighbors.clear();
       this.worldDataSem.release();
     }
     // sleep if the tick was too fast
@@ -357,7 +357,9 @@ public class World {
     long tickTime;
 
     try {
-      this.worldDataSem.acquire();
+      if (!this.worldDataSem.tryAcquire(2, TimeUnit.MILLISECONDS)) {
+        return;
+      }
 
       // save start time
       final var start = System.nanoTime();
@@ -380,9 +382,9 @@ public class World {
       tickTime = System.nanoTime() - start;
       this.tps.add(tickTime);
     } catch (final InterruptedException e) {
-      // ignore
       return;
     } finally {
+      this.livingNeighbors.clear();
       this.worldDataSem.release();
     }
 

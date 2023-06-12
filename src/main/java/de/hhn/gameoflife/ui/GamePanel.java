@@ -92,9 +92,8 @@ public class GamePanel extends JPanel implements Disposable {
               return;
             }
             try {
-              GamePanel.this.worldDataSem.acquire();
+              GamePanel.this.worldDataSem.acquireUninterruptibly();
               GamePanel.this.togglePoints(e.getPoint(), GamePanel.this.ds.getStructure());
-            } catch (final InterruptedException interruptedException) {
             } finally {
               GamePanel.this.worldDataSem.release();
             }
@@ -106,15 +105,13 @@ public class GamePanel extends JPanel implements Disposable {
               return;
             }
             try {
-              GamePanel.this.worldDataSem.acquire();
+              GamePanel.this.worldDataSem.acquireUninterruptibly();
               wasPaused.set(GamePanel.this.world.getPaused());
               GamePanel.this.world.setPaused(true);
               relativeBoundingRect.setSize(
                   GamePanel.this.worldUI.getWidth(), GamePanel.this.worldUI.getHeight());
 
               drawNewState.set(GamePanel.this.togglePoint(e.getPoint()));
-            } catch (final InterruptedException interruptedException) {
-              interruptedException.printStackTrace();
             } finally {
               GamePanel.this.worldDataSem.release();
             }
@@ -125,7 +122,12 @@ public class GamePanel extends JPanel implements Disposable {
             if (!drawing) {
               return;
             }
-            GamePanel.this.world.setPaused(wasPaused.get());
+            try {
+              GamePanel.this.worldDataSem.acquireUninterruptibly();
+              GamePanel.this.world.setPaused(wasPaused.get());
+            } finally {
+              GamePanel.this.worldDataSem.release();
+            }
           }
 
           @Override
@@ -147,7 +149,12 @@ public class GamePanel extends JPanel implements Disposable {
               return;
             }
 
-            GamePanel.this.togglePoint(e.getPoint(), drawNewState.get());
+            try {
+              GamePanel.this.worldDataSem.acquireUninterruptibly();
+              GamePanel.this.togglePoint(e.getPoint(), drawNewState.get());
+            } finally {
+              GamePanel.this.worldDataSem.release();
+            }
           }
 
           @Override
