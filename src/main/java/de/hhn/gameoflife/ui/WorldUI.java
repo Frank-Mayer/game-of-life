@@ -3,6 +3,7 @@ package de.hhn.gameoflife.ui;
 import de.hhn.gameoflife.control_iface.Drawable;
 import de.hhn.gameoflife.data_structures.IntSet;
 import de.hhn.gameoflife.logic.Settings;
+import de.hhn.gameoflife.logic.Snake;
 import de.hhn.gameoflife.util.Utils;
 import java.awt.Color;
 import java.awt.Graphics;
@@ -15,7 +16,9 @@ public class WorldUI extends JPanel implements Drawable<IntSet> {
   private final int worldSize;
   private final int logWorldWidth;
   private final int worldWidthMinusOne;
-  private final BufferedImage buffer;
+  private final BufferedImage worldBuffer;
+  private final BufferedImage masterBuffer;
+  private final BufferedImage overlayBuffer;
   private int colorAlive = 0xffffff;
   private int colorDead = 0x000000;
   private boolean disposed;
@@ -24,9 +27,16 @@ public class WorldUI extends JPanel implements Drawable<IntSet> {
     this.logWorldWidth = Utils.log2(settings.worldWidth());
     this.worldWidthMinusOne = settings.worldWidth() - 1;
     this.worldSize = settings.worldWidth() * settings.worldHeight();
-    this.buffer =
+    this.worldBuffer =
         new BufferedImage(
             settings.worldWidth(), settings.worldHeight(), BufferedImage.TYPE_INT_RGB);
+    this.overlayBuffer =
+        new BufferedImage(
+            settings.worldWidth(), settings.worldHeight(), BufferedImage.TYPE_INT_ARGB);
+    this.masterBuffer =
+        new BufferedImage(
+            settings.worldWidth(), settings.worldHeight(), BufferedImage.TYPE_INT_RGB);
+    this.compose();
   }
 
   public Color getAliveColor() {
@@ -47,12 +57,12 @@ public class WorldUI extends JPanel implements Drawable<IntSet> {
 
   @Override
   public void paintComponent(final Graphics g) {
-    g.drawImage(this.buffer, 0, 0, this.getWidth(), this.getHeight(), null);
+    g.drawImage(this.masterBuffer, 0, 0, this.getWidth(), this.getHeight(), null);
   }
 
   @Override
   public void paint(final Graphics g) {
-    g.drawImage(this.buffer, 0, 0, this.getWidth(), this.getHeight(), null);
+    g.drawImage(this.masterBuffer, 0, 0, this.getWidth(), this.getHeight(), null);
   }
 
   /** free resources */
@@ -61,8 +71,12 @@ public class WorldUI extends JPanel implements Drawable<IntSet> {
       return;
     }
     this.disposed = true;
-    this.buffer.flush();
-    this.buffer.getGraphics().dispose();
+    this.worldBuffer.flush();
+    this.worldBuffer.getGraphics().dispose();
+    this.masterBuffer.flush();
+    this.masterBuffer.getGraphics().dispose();
+    this.overlayBuffer.flush();
+    this.overlayBuffer.getGraphics().dispose();
   }
 
   public void draw() {
@@ -70,9 +84,11 @@ public class WorldUI extends JPanel implements Drawable<IntSet> {
     if (g == null) {
       return;
     }
-    g.drawImage(this.buffer, 0, 0, this.getWidth(), this.getHeight(), null);
+    this.compose();
+    g.drawImage(this.masterBuffer, 0, 0, this.getWidth(), this.getHeight(), null);
   }
 
+  @Override
   public void set(final IntSet data) {
     int i;
     int x;
@@ -80,20 +96,41 @@ public class WorldUI extends JPanel implements Drawable<IntSet> {
     for (i = 0; i < this.worldSize; ++i) {
       x = i & this.worldWidthMinusOne; // x = i % this.worldWidth;
       y = i >> this.logWorldWidth; // i / this.worldWidth;
-      this.buffer.setRGB(x, y, data.contains(i) ? this.colorAlive : this.colorDead);
+      this.worldBuffer.setRGB(x, y, data.contains(i) ? this.colorAlive : this.colorDead);
     }
+    this.draw();
   }
 
   /** get the current worlds image */
   public BufferedImage getImage() {
-    return this.buffer;
+    return this.masterBuffer;
   }
 
   @Override
-  public void set(int index, boolean alife) {
-    this.buffer.setRGB(
+  public void set(final int index, final boolean alife) {
+    this.worldBuffer.setRGB(
         index & this.worldWidthMinusOne,
         index >> this.logWorldWidth,
         alife ? this.colorAlive : this.colorDead);
+  }
+
+  @Override
+  public void compose() {
+    final var g = this.masterBuffer.getGraphics();
+    g.drawImage(this.worldBuffer, 0, 0, null);
+    g.drawImage(this.overlayBuffer, 0, 0, null);
+    g.dispose();
+  }
+
+  public void snake(final Snake snake) {
+    snake.onChange(this::drawSnake);
+  }
+
+  public synchronized void drawSnake(final Iterable<Integer> positions) {
+    for (final var position : positions) {
+      this.overlayBuffer.setRGB(
+          position & this.worldWidthMinusOne, position >> this.logWorldWidth, Color.RED.getRGB());
+    }
+    this.draw();
   }
 }

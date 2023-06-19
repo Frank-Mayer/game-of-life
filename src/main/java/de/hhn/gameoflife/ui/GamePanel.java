@@ -5,6 +5,7 @@ import static de.hhn.gameoflife.util.State.useState;
 import de.hhn.gameoflife.control_iface.Disposable;
 import de.hhn.gameoflife.logic.DrawingStyle;
 import de.hhn.gameoflife.logic.Settings;
+import de.hhn.gameoflife.logic.Snake;
 import de.hhn.gameoflife.logic.World;
 import de.hhn.gameoflife.util.DIContainer;
 import de.hhn.gameoflife.util.Dithering;
@@ -45,6 +46,7 @@ public class GamePanel extends JPanel implements Disposable {
     this.diContainer.addSingleton(new Settings(width, height));
     this.diContainer.addSingleton(World.class);
     this.diContainer.addSingleton(WorldUI.class);
+    this.diContainer.addSingleton(Snake.class);
     this.diContainer.addSingleton(FPS.class);
     this.diContainer.addSingleton(this.worldDataSem);
 
@@ -317,5 +319,11 @@ public class GamePanel extends JPanel implements Disposable {
 
   public void setPaused(final boolean value) {
     this.world.setPaused(value);
+  }
+
+  public void snake() {
+    final var snake = this.diContainer.get(Snake.class);
+    // this.world.snake(snake);
+    this.worldUI.snake(snake);
   }
 }

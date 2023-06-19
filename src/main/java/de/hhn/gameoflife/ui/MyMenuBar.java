@@ -138,6 +138,15 @@ public class MyMenuBar extends JMenuBar {
       categories.get(drawingStyle.getCategory()).add(dsmi);
     }
 
+    final var snakeMenuItem = new JMenuItem("Snake");
+    snakeMenuItem.addActionListener(
+        e -> {
+          final var gol = (GamePanel) inFrame.getContentPane();
+          gol.snake();
+          menuBar.remove(snakeMenuItem);
+        });
+    menuBar.add(snakeMenuItem);
+
     return menuBar;
   }
 
