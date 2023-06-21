@@ -144,7 +144,6 @@ public class MyMenuBar extends JMenuBar {
         e -> {
           final var gol = (GamePanel) inFrame.getContentPane();
           gol.snake();
-          menuBar.remove(snakeMenuItem);
         });
     menuBar.add(snakeMenuItem);
 

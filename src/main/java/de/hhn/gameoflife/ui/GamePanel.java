@@ -17,9 +17,7 @@ import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
 import javax.imageio.ImageIO;
 import javax.swing.BoxLayout;
 import javax.swing.JLabel;
@@ -328,13 +326,8 @@ public class GamePanel extends JPanel implements Disposable {
 
   public void snake() {
     final var snake = this.diContainer.get(Snake.class);
-    // this.world.snake(snake);
+    snake.reset();
     this.worldUI.snake(snake);
     snake.start();
-    final var sheduler = Executors.newScheduledThreadPool(1);
-    sheduler.scheduleWithFixedDelay(() -> {
-      snake.tick();
-      this.worldUI.draw();
-    }, 1, 1, TimeUnit.SECONDS);
   }
 }
