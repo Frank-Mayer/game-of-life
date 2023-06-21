@@ -131,8 +131,8 @@ public class WorldUI extends JPanel implements Drawable<IntSet> {
   }
 
   public synchronized void drawSnake(final Iterable<Integer> positions) {
-    for(int y = 0; y != this.worldHeight; ++y) {
-      for(int x = 0; x != this.worldWidth; ++x) {
+    for (int y = 0; y != this.worldHeight; ++y) {
+      for (int x = 0; x != this.worldWidth; ++x) {
         this.overlayBuffer.setRGB(x, y, Color.TRANSLUCENT);
       }
     }

@@ -102,8 +102,7 @@ public class Snake implements Disposable {
       Alert.show("Game over", "You bit yourself!", null);
       this.active = false;
       this.positions.clear();
-    }
-    else {
+    } else {
       this.positions.add(newHead);
     }
     this.onChangeConsumer.accept(this.positions);

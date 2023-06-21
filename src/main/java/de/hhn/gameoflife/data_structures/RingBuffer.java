@@ -1,8 +1,9 @@
 package de.hhn.gameoflife.data_structures;
 
+import static de.hhn.gameoflife.util.State.useState;
+
 import java.util.Arrays;
 import java.util.Iterator;
-import static de.hhn.gameoflife.util.State.useState;
 
 public class RingBuffer<T> implements Iterable<T> {
   private class RingBufferIterator implements Iterator<T> {
@@ -49,10 +50,13 @@ public class RingBuffer<T> implements Iterable<T> {
     final var newMaxSize = this.maxSize + add;
     final var newBuffer = (T[]) new Object[newMaxSize];
     final var i = useState(0);
-    Arrays.stream(this.buffer).sorted().forEach(el -> {
-      newBuffer[i.get()] = el;
-      i.set(i.get() + 1);
-    });
+    Arrays.stream(this.buffer)
+        .sorted()
+        .forEach(
+            el -> {
+              newBuffer[i.get()] = el;
+              i.set(i.get() + 1);
+            });
     this.buffer = newBuffer;
     this.maxSize = newMaxSize;
     this.head = i.get() - 1;
