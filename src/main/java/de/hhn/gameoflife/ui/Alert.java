@@ -2,6 +2,8 @@ package de.hhn.gameoflife.ui;
 
 import java.awt.BorderLayout;
 import java.awt.Component;
+import java.awt.Dimension;
+
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
@@ -19,6 +21,8 @@ public class Alert extends JDialog {
     this.setLayout(new BorderLayout());
     this.setTitle(title);
     this.setModal(true);
+    this.setResizable(false);
+    this.setMinimumSize(new Dimension(250, 100));
     this.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
     this.add(new JLabel(message), BorderLayout.CENTER);
     this.add(

@@ -1,6 +1,8 @@
 package de.hhn.gameoflife.logic;
 
 import de.hhn.gameoflife.data_structures.RingBuffer;
+import de.hhn.gameoflife.ui.Alert;
+
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.util.HashSet;
@@ -11,7 +13,6 @@ public class Snake {
   public static class SnakeKeyListener extends KeyAdapter {
     @Override
     public void keyPressed(final KeyEvent e) {
-      System.out.println("key pressed");
       for (final var snake : Snake.snakes) {
         switch (e.getKeyCode()) {
           case KeyEvent.VK_UP:
@@ -92,7 +93,7 @@ public class Snake {
     if (this.positions.contains(newHead)) {
       // bite yourself
       this.active = false;
-      System.out.println("Game over!");
+      Alert.show("Game over", "You bit yourself!", null);
     } else {
       this.positions.add(newHead);
     }
