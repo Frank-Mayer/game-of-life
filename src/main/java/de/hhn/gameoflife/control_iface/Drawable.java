@@ -7,4 +7,6 @@ public interface Drawable<T> {
   void set(final int index, final boolean alife);
 
   void draw();
+
+  void compose();
 }

@@ -5,6 +5,7 @@ import static de.hhn.gameoflife.util.State.useState;
 import de.hhn.gameoflife.control_iface.Disposable;
 import de.hhn.gameoflife.logic.DrawingStyle;
 import de.hhn.gameoflife.logic.Settings;
+import de.hhn.gameoflife.logic.Snake;
 import de.hhn.gameoflife.logic.World;
 import de.hhn.gameoflife.util.DIContainer;
 import de.hhn.gameoflife.util.Dithering;
@@ -45,6 +46,7 @@ public class GamePanel extends JPanel implements Disposable {
     this.diContainer.addSingleton(new Settings(width, height));
     this.diContainer.addSingleton(World.class);
     this.diContainer.addSingleton(WorldUI.class);
+    this.diContainer.addSingleton(Snake.class);
     this.diContainer.addSingleton(FPS.class);
     this.diContainer.addSingleton(this.worldDataSem);
 
@@ -58,6 +60,7 @@ public class GamePanel extends JPanel implements Disposable {
     this.setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
     // frame time label
     this.fpsLabel = this.diContainer.get(FPS.class);
+    this.fpsLabel.setFocusable(false);
     this.add(this.fpsLabel);
     // min tick time slider (delay)
     final var minTickTimeLabel =
@@ -65,6 +68,7 @@ public class GamePanel extends JPanel implements Disposable {
     this.add(minTickTimeLabel);
     final var minTickTimeSlider =
         new JSlider(0, 100, (int) Math.round(Math.sqrt(this.world.getMinTickTime()) * Math.PI));
+    minTickTimeSlider.setFocusable(false);
     minTickTimeSlider.setPaintLabels(false);
     minTickTimeSlider.setPaintTrack(true);
     minTickTimeSlider.setPaintTicks(false);
@@ -80,6 +84,7 @@ public class GamePanel extends JPanel implements Disposable {
     // world ui to display the world
     this.worldUI = this.diContainer.get(WorldUI.class);
     this.add(this.worldUI);
+    this.worldUI.setFocusable(false);
     // add mouse listener to toggle cells
     final var drawNewState = useState(false);
     final var wasPaused = useState(false);
@@ -317,5 +322,12 @@ public class GamePanel extends JPanel implements Disposable {
 
   public void setPaused(final boolean value) {
     this.world.setPaused(value);
+  }
+
+  public void snake() {
+    final var snake = this.diContainer.get(Snake.class);
+    snake.reset();
+    this.worldUI.snake(snake);
+    snake.start();
   }
 }

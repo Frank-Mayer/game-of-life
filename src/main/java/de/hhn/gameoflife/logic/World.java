@@ -12,6 +12,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import javax.swing.SwingUtilities;
 
 public class World {
   private final Drawable<IntSet> ui;
@@ -57,7 +58,7 @@ public class World {
       }
     }
     this.ui.set(this.worldData);
-    this.ui.draw();
+    SwingUtilities.invokeLater(this.ui::draw);
 
     // how big is the world?
     if (this.worldSize >= 1_048_576) { // 1048576 = 1024 * 1024
