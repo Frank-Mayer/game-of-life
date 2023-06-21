@@ -62,6 +62,7 @@ public class GamePanel extends JPanel implements Disposable {
     this.setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
     // frame time label
     this.fpsLabel = this.diContainer.get(FPS.class);
+    this.fpsLabel.setFocusable(false);
     this.add(this.fpsLabel);
     // min tick time slider (delay)
     final var minTickTimeLabel =
@@ -69,6 +70,7 @@ public class GamePanel extends JPanel implements Disposable {
     this.add(minTickTimeLabel);
     final var minTickTimeSlider =
         new JSlider(0, 100, (int) Math.round(Math.sqrt(this.world.getMinTickTime()) * Math.PI));
+    minTickTimeSlider.setFocusable(false);
     minTickTimeSlider.setPaintLabels(false);
     minTickTimeSlider.setPaintTrack(true);
     minTickTimeSlider.setPaintTicks(false);
@@ -84,6 +86,7 @@ public class GamePanel extends JPanel implements Disposable {
     // world ui to display the world
     this.worldUI = this.diContainer.get(WorldUI.class);
     this.add(this.worldUI);
+    this.worldUI.setFocusable(false);
     // add mouse listener to toggle cells
     final var drawNewState = useState(false);
     final var wasPaused = useState(false);
@@ -330,7 +333,6 @@ public class GamePanel extends JPanel implements Disposable {
     snake.start();
     final var sheduler = Executors.newScheduledThreadPool(1);
     sheduler.scheduleWithFixedDelay(() -> {
-      System.out.println("ticking");
       snake.tick();
       this.worldUI.draw();
     }, 1, 1, TimeUnit.SECONDS);

@@ -3,16 +3,6 @@ package de.hhn.gameoflife.data_structures;
 import java.util.Iterator;
 
 public class RingBuffer<T> implements Iterable<T> {
-  public static void main(String[] args) {
-    final var rb = new RingBuffer<Integer>(4);
-    for(int i = 1; i != 7; ++i) {
-      rb.add(i);
-      for(final var x : rb) {
-        System.out.print(x);
-      }
-      System.out.println();
-    }
-  }
   private class RingBufferIterator implements Iterator<T> {
     private int current;
     private final int length;
@@ -39,6 +29,7 @@ public class RingBuffer<T> implements Iterable<T> {
       return RingBuffer.this.buffer[this.current];
     }
   }
+
   private final T[] buffer;
   private final int maxSize;
   private int head;

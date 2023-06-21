@@ -2,6 +2,7 @@ package de.hhn.gameoflife.ui;
 
 import de.hhn.gameoflife.logic.DrawingStyle;
 import de.hhn.gameoflife.logic.DrawingStyleCategory;
+import de.hhn.gameoflife.logic.Snake;
 import java.awt.Dimension;
 import java.awt.GraphicsEnvironment;
 import java.util.HashMap;
@@ -200,9 +201,10 @@ public class MyMenuBar extends JMenuBar {
           // create a new internal frame
           final var inFrame =
               new JInternalFrame(
-                  String.format("Game of Life %dx%d", res, res), true, true, true, true);
+                  String.format("Game of Life %dx%d", res, res), true, true, true, false);
           inFrame.setPreferredSize(preferredFrameSize);
-
+          inFrame.addKeyListener(new Snake.SnakeKeyListener());
+          inFrame.setFocusable(true);
           inFrame.setJMenuBar(MyMenuBar.makeInternalFrameMenuBar(inFrame));
           final var gol = new GamePanel(res, res);
           inFrame.setContentPane(gol);
