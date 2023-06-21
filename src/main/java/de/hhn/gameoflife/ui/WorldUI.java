@@ -22,11 +22,15 @@ public class WorldUI extends JPanel implements Drawable<IntSet> {
   private int colorAlive = 0xffffff;
   private int colorDead = 0x000000;
   private boolean disposed;
+  private final int worldWidth;
+  private final int worldHeight;
 
   public WorldUI(final Settings settings) {
     this.logWorldWidth = Utils.log2(settings.worldWidth());
     this.worldWidthMinusOne = settings.worldWidth() - 1;
     this.worldSize = settings.worldWidth() * settings.worldHeight();
+    this.worldWidth = settings.worldWidth();
+    this.worldHeight = settings.worldHeight();
     this.worldBuffer =
         new BufferedImage(
             settings.worldWidth(), settings.worldHeight(), BufferedImage.TYPE_INT_RGB);
@@ -127,9 +131,15 @@ public class WorldUI extends JPanel implements Drawable<IntSet> {
   }
 
   public synchronized void drawSnake(final Iterable<Integer> positions) {
+    for(int y = 0; y != this.worldHeight; ++y) {
+      for(int x = 0; x != this.worldWidth; ++x) {
+        this.overlayBuffer.setRGB(x, y, Color.TRANSLUCENT);
+      }
+    }
     for (final var position : positions) {
-      this.overlayBuffer.setRGB(
-          position & this.worldWidthMinusOne, position >> this.logWorldWidth, Color.RED.getRGB());
+      final var x = position & this.worldWidthMinusOne;
+      final var y = position >> this.logWorldWidth;
+      this.overlayBuffer.setRGB(x, y, Color.RED.getRGB());
     }
     this.draw();
   }
