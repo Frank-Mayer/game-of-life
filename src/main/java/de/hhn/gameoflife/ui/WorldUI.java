@@ -64,11 +64,13 @@ public class WorldUI extends JPanel implements Drawable<IntSet> {
   }
 
   private int calcSnakeColor() {
-    return new Color(
+    final var rgb = new Color(
             (this.colorAlive >> 16 & 0xff) + (this.colorDead >> 16 & 0xff) >> 1,
             (this.colorAlive >> 8 & 0xff) + (this.colorDead >> 8 & 0xff) >> 1,
-            (this.colorAlive & 0xff) + (this.colorDead & 0xff) >> 1)
-        .getRGB();
+            (this.colorAlive & 0xff) + (this.colorDead & 0xff) >> 1);
+    final var hsb = Color.RGBtoHSB(rgb.getRed(), rgb.getGreen(), rgb.getBlue(), null);
+    // invert hue and brightness
+    return Color.HSBtoRGB(1f - hsb[0], Math.max(0.25f, hsb[1]), 1f - hsb[2]);
   }
 
   @Override
