@@ -24,6 +24,7 @@ public class WorldUI extends JPanel implements Drawable<IntSet> {
   private boolean disposed;
   private final int worldWidth;
   private final int worldHeight;
+  private int colorSnake;
 
   public WorldUI(final Settings settings) {
     this.logWorldWidth = Utils.log2(settings.worldWidth());
@@ -40,6 +41,7 @@ public class WorldUI extends JPanel implements Drawable<IntSet> {
     this.masterBuffer =
         new BufferedImage(
             settings.worldWidth(), settings.worldHeight(), BufferedImage.TYPE_INT_RGB);
+    this.colorSnake = this.calcSnakeColor();
     this.compose();
   }
 
@@ -49,6 +51,7 @@ public class WorldUI extends JPanel implements Drawable<IntSet> {
 
   public void setAliveColor(final Color color) {
     this.colorAlive = color.getRGB();
+    this.colorSnake = this.calcSnakeColor();
   }
 
   public Color getDeadColor() {
@@ -57,6 +60,15 @@ public class WorldUI extends JPanel implements Drawable<IntSet> {
 
   public void setDeadColor(final Color color) {
     this.colorDead = color.getRGB();
+    this.colorSnake = this.calcSnakeColor();
+  }
+
+  private int calcSnakeColor() {
+    return new Color(
+            (this.colorAlive >> 16 & 0xff) + (this.colorDead >> 16 & 0xff) >> 1,
+            (this.colorAlive >> 8 & 0xff) + (this.colorDead >> 8 & 0xff) >> 1,
+            (this.colorAlive & 0xff) + (this.colorDead & 0xff) >> 1)
+        .getRGB();
   }
 
   @Override
@@ -139,7 +151,7 @@ public class WorldUI extends JPanel implements Drawable<IntSet> {
     for (final var position : positions) {
       final var x = position & this.worldWidthMinusOne;
       final var y = position >> this.logWorldWidth;
-      this.overlayBuffer.setRGB(x, y, Color.RED.getRGB());
+      this.overlayBuffer.setRGB(x, y, this.colorSnake);
     }
     this.draw();
   }
