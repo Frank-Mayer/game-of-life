@@ -6,7 +6,7 @@ package de.hhn.gameoflife.logic;
  * <p>Only used for the GUI.
  */
 public enum DrawingStyleCategory {
-  STILL_LIFES("Still Lives"),
+  STILL_LIFES("Still Lifes"),
   OSCILLATORS("Oscillators"),
   SPACESHIPS("Spaceships");
 
